@@ -1,0 +1,17 @@
+# frozen_string_literal: true
+
+require "bundler/setup"
+
+app_env = ENV.fetch("APP_ENV", "development")
+
+require "pry" if %w[development test].include?(app_env)
+
+require_relative "p1_tool/version"
+require_relative "p1_tool/errors"
+require_relative "p1_tool/core/configuration_schema"
+require_relative "p1_tool/core/configuration_loader"
+require_relative "p1_tool/application/cli"
+
+module P1Tool
+  CLI = Application::CLI
+end
