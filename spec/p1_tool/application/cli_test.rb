@@ -10,14 +10,68 @@ class P1ToolCliTest < Minitest::Test
     exit_code = P1Tool::CLI.start([], stdout: stdout, stderr: stderr)
 
     assert_equal 0, exit_code
+    assert_includes stdout.string, "run-once --input PATH --output PATH [--config PATH]"
     assert_includes stdout.string, "verify [--config PATH]"
     assert_empty stderr.string
+  end
+
+  def test_run_once_processes_valid_input_file
+    Dir.mktmpdir do |dir|
+      config_path = File.join(dir, "config.yml")
+      input_path = File.join(dir, "input.json")
+      output_path = File.join(dir, "results", "output.json")
+
+      write_runtime_config(config_path, audit_log: File.join(dir, "audit", "audit.jsonl"))
+      File.write(input_path, JSON.pretty_generate(fixture_json("runtime", "valid_input.json")))
+
+      stdout = StringIO.new
+      stderr = StringIO.new
+
+      exit_code = P1Tool::CLI.start(
+        ["run-once", "--config", config_path, "--input", input_path, "--output", output_path],
+        stdout: stdout,
+        stderr: stderr
+      )
+
+      assert_equal 0, exit_code
+      assert_includes stdout.string, "Execution finished with success"
+      assert_equal "success", JSON.parse(File.read(output_path)).fetch("result_kind")
+      assert_empty stderr.string
+    end
+  end
+
+  def test_run_once_returns_non_zero_for_invalid_input
+    Dir.mktmpdir do |dir|
+      config_path = File.join(dir, "config.yml")
+      input_path = File.join(dir, "input.json")
+      output_path = File.join(dir, "results", "output.json")
+
+      write_runtime_config(config_path, audit_log: File.join(dir, "audit", "audit.jsonl"))
+      File.write(
+        input_path,
+        JSON.pretty_generate(fixture_json("runtime", "invalid_input_missing_operation_kind.json"))
+      )
+
+      stdout = StringIO.new
+      stderr = StringIO.new
+
+      exit_code = P1Tool::CLI.start(
+        ["run-once", "--config", config_path, "--input", input_path, "--output", output_path],
+        stdout: stdout,
+        stderr: stderr
+      )
+
+      assert_equal 1, exit_code
+      assert_includes stdout.string, "Execution finished with invalid"
+      assert_equal "invalid", JSON.parse(File.read(output_path)).fetch("result_kind")
+      assert_empty stderr.string
+    end
   end
 
   def test_verify_loads_and_validates_config
     Dir.mktmpdir do |dir|
       config_path = File.join(dir, "config.yml")
-      File.write(config_path, valid_config)
+      write_runtime_config(config_path)
 
       stdout = StringIO.new
       stderr = StringIO.new
@@ -38,7 +92,11 @@ class P1ToolCliTest < Minitest::Test
   def test_verify_reports_configuration_errors
     Dir.mktmpdir do |dir|
       config_path = File.join(dir, "config.yml")
-      File.write(config_path, "paths:\n  inbox: /data/inbox\n")
+      write_config_fixture(
+        config_path,
+        fixture_name: "invalid_runtime_config_missing_required.yml",
+        replacements: { "__AUDIT_LOG_PATH__" => "/logs/audit.jsonl" }
+      )
 
       stdout = StringIO.new
       stderr = StringIO.new
@@ -58,34 +116,11 @@ class P1ToolCliTest < Minitest::Test
 
   private
 
-  def valid_config
-    <<~YAML
-      paths:
-        inbox: /data/inbox
-        processing: /data/processing
-        done: /data/done
-        invalid: /data/invalid
-        results: /data/results
-        audit_log: /logs/audit.jsonl
-      redis:
-        url: redis://localhost:6379/0
-      signature_service:
-        url: http://localhost:8080
-      subject:
-        oid: "1.2.616.1.113883.3.4424.1.1"
-        identification_code: "1234567890"
-        department_code_v: "1234"
-        department_code_vii: "1234567"
-        is_practice: false
-        medical_chamber: "NIL"
-      certificates:
-        base_path: /certs
-        signing:
-          filename: signing.p12
-          password_env: SIGNING_CERT_PASSWORD
-        tls:
-          filename: tls.p12
-          password_env: TLS_CERT_PASSWORD
-    YAML
+  def write_runtime_config(config_path, audit_log: "/logs/audit.jsonl")
+    write_config_fixture(
+      config_path,
+      fixture_name: "runtime_config.yml",
+      replacements: { "__AUDIT_LOG_PATH__" => audit_log }
+    )
   end
 end

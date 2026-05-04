@@ -1,0 +1,23 @@
+paths:
+  inbox: /data/inbox
+  done: /data/done
+  invalid: /data/invalid
+  results: /data/results
+  audit_log: __AUDIT_LOG_PATH__
+signature_service:
+  url: http://localhost:8080
+subject:
+  oid: "1.2.616.1.113883.3.4424.1.1"
+  identification_code: "1234567890"
+  department_code_v: "1234"
+  department_code_vii: "1234567"
+  is_practice: false
+  medical_chamber: "NIL"
+certificates:
+  base_path: /certs
+  signing:
+    filename: signing.p12
+    password_env: SIGNING_CERT_PASSWORD
+  tls:
+    filename: tls.p12
+    password_env: TLS_CERT_PASSWORD

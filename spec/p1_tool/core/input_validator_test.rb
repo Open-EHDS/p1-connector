@@ -4,12 +4,9 @@ require_relative "../../test_helper"
 
 class P1ToolInputValidatorTest < Minitest::Test
   def test_validate_returns_normalized_input_for_supported_operation_kind
-    input = {
-      "task_id" => "task-1",
-      "operation_kind" => "hello_world",
-      "payload" => { "name" => "Alice" },
+    input = fixture_json("runtime", "valid_input.json").merge(
       "options" => { "attempt" => 1 }
-    }
+    )
 
     result = P1Tool::Core::InputValidator.validate(
       input,
@@ -25,7 +22,7 @@ class P1ToolInputValidatorTest < Minitest::Test
   def test_validate_rejects_unknown_operation_kind
     error = assert_raises(P1Tool::InputValidationError) do
       P1Tool::Core::InputValidator.validate(
-        valid_input.merge("operation_kind" => "unknown"),
+        fixture_json("runtime", "valid_input.json").merge("operation_kind" => "unknown"),
         operation_kinds: P1Tool::Application::Dispatcher.supported_operation_kinds
       )
     end
@@ -36,21 +33,11 @@ class P1ToolInputValidatorTest < Minitest::Test
   def test_validate_rejects_missing_required_keys
     error = assert_raises(P1Tool::InputValidationError) do
       P1Tool::Core::InputValidator.validate(
-        { "operation_kind" => "hello_world", "payload" => {} },
+        fixture_json("runtime", "invalid_input_missing_operation_kind.json").merge("operation_kind" => "hello_world").except("task_id"),
         operation_kinds: P1Tool::Application::Dispatcher.supported_operation_kinds
       )
     end
 
     assert_equal ["is missing"], error.details[:task_id]
-  end
-
-  private
-
-  def valid_input
-    {
-      "task_id" => "task-1",
-      "operation_kind" => "hello_world",
-      "payload" => { "name" => "Alice" }
-    }
   end
 end

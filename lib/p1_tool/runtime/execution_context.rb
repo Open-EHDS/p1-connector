@@ -42,6 +42,14 @@ module P1Tool
           result[attribute] = value unless value.nil?
         end
       end
+
+      def with(**attributes)
+        merged_attributes = ATTRIBUTES.each_with_object({}) do |attribute, result|
+          result[attribute] = public_send(attribute)
+        end.merge(attributes)
+
+        self.class.new(**merged_attributes)
+      end
     end
   end
 end

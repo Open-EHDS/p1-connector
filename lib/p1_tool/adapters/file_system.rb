@@ -28,6 +28,7 @@ module P1Tool
 
       def atomic_write(path, content)
         directory = File.dirname(path)
+        mkdir_p(directory)
         tmp_path = File.join(directory, ".tmp-#{File.basename(path)}-#{Process.pid}-#{SecureRandom.hex(6)}")
 
         File.write(tmp_path, content)
