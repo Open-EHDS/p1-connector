@@ -3,6 +3,8 @@
 ENV["APP_ENV"] = "test"
 
 require "minitest/autorun"
+require "minitest/spec"
+require "minitest/pride" if ENV["MINITEST_PRIDE"] == "1" || $stdout.tty?
 require "tmpdir"
 require "stringio"
 require "json"

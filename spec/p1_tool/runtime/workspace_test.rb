@@ -2,10 +2,29 @@
 
 require_relative "../../test_helper"
 
-class P1ToolWorkspaceTest < Minitest::Test
-  def test_prepare_creates_working_directories
-    Dir.mktmpdir do |dir|
-      workspace = P1Tool::Runtime::Workspace.new(workspace_config(dir))
+describe P1Tool::Runtime::Workspace do
+  let(:workspace_class) { P1Tool::Runtime::Workspace }
+  let(:tmpdir) { Dir.mktmpdir }
+  let(:workspace_config) do
+    {
+      paths: {
+        inbox: File.join(tmpdir, "inbox"),
+        processing: File.join(tmpdir, "processing"),
+        done: File.join(tmpdir, "done"),
+        invalid: File.join(tmpdir, "invalid"),
+        results: File.join(tmpdir, "results"),
+        audit_log: File.join(tmpdir, "logs", "audit.jsonl")
+      }
+    }
+  end
+
+  after do
+    FileUtils.remove_entry(tmpdir) if File.exist?(tmpdir)
+  end
+
+  describe "#prepare!" do
+    it "creates working directories" do
+      workspace = workspace_class.new(workspace_config)
 
       workspace.prepare!
 
@@ -15,9 +34,9 @@ class P1ToolWorkspaceTest < Minitest::Test
     end
   end
 
-  def test_claim_inbox_file_moves_file_to_processing
-    Dir.mktmpdir do |dir|
-      workspace = P1Tool::Runtime::Workspace.new(workspace_config(dir))
+  describe "#claim_inbox_file" do
+    it "moves file to processing" do
+      workspace = workspace_class.new(workspace_config)
       workspace.prepare!
 
       inbox_path = File.join(workspace.path_for(:inbox), "task-1.json")
@@ -31,9 +50,9 @@ class P1ToolWorkspaceTest < Minitest::Test
     end
   end
 
-  def test_write_result_stores_result_json_in_results_directory
-    Dir.mktmpdir do |dir|
-      workspace = P1Tool::Runtime::Workspace.new(workspace_config(dir))
+  describe "#write_result" do
+    it "stores result json in results directory" do
+      workspace = workspace_class.new(workspace_config)
       workspace.prepare!
 
       processing_path = File.join(workspace.path_for(:processing), "task-1.json")
@@ -54,9 +73,9 @@ class P1ToolWorkspaceTest < Minitest::Test
     end
   end
 
-  def test_move_to_done_moves_file_out_of_processing
-    Dir.mktmpdir do |dir|
-      workspace = P1Tool::Runtime::Workspace.new(workspace_config(dir))
+  describe "#move_to_done" do
+    it "moves file out of processing" do
+      workspace = workspace_class.new(workspace_config)
       workspace.prepare!
 
       processing_path = File.join(workspace.path_for(:processing), "task-1.json")
@@ -70,9 +89,9 @@ class P1ToolWorkspaceTest < Minitest::Test
     end
   end
 
-  def test_move_to_invalid_moves_file_out_of_processing
-    Dir.mktmpdir do |dir|
-      workspace = P1Tool::Runtime::Workspace.new(workspace_config(dir))
+  describe "#move_to_invalid" do
+    it "moves file out of processing" do
+      workspace = workspace_class.new(workspace_config)
       workspace.prepare!
 
       processing_path = File.join(workspace.path_for(:processing), "task-2.json")
@@ -84,20 +103,5 @@ class P1ToolWorkspaceTest < Minitest::Test
       refute File.exist?(processing_path)
       assert File.exist?(destination_path)
     end
-  end
-
-  private
-
-  def workspace_config(root_dir)
-    {
-      paths: {
-        inbox: File.join(root_dir, "inbox"),
-        processing: File.join(root_dir, "processing"),
-        done: File.join(root_dir, "done"),
-        invalid: File.join(root_dir, "invalid"),
-        results: File.join(root_dir, "results"),
-        audit_log: File.join(root_dir, "logs", "audit.jsonl")
-      }
-    }
   end
 end
