@@ -1,26 +1,26 @@
 # frozen_string_literal: true
 
-require "bundler/setup"
+require 'bundler/setup'
 
-app_env = ENV.fetch("APP_ENV", "development")
+app_env = ENV.fetch('APP_ENV', 'development')
 
-require "pry" if %w[development test].include?(app_env)
+require 'pry' if %w[development test].include?(app_env)
 
-require_relative "p1_tool/version"
-require_relative "p1_tool/errors"
-require_relative "p1_tool/adapters/audit_log"
-require_relative "p1_tool/adapters/file_system"
-require_relative "p1_tool/core/configuration_schema"
-require_relative "p1_tool/core/configuration_loader"
-require_relative "p1_tool/core/input_schema"
-require_relative "p1_tool/core/input_validator"
-require_relative "p1_tool/application/operations/hello_world"
-require_relative "p1_tool/application/dispatcher"
-require_relative "p1_tool/runtime/config_version"
-require_relative "p1_tool/runtime/execution_context"
-require_relative "p1_tool/runtime/task_processor"
-require_relative "p1_tool/runtime/workspace"
-require_relative "p1_tool/application/cli"
+require_relative 'p1_tool/version'
+require_relative 'p1_tool/errors'
+require_relative 'p1_tool/adapters/audit_log'
+require_relative 'p1_tool/adapters/file_system'
+require_relative 'p1_tool/core/configuration_schema'
+require_relative 'p1_tool/core/configuration_loader'
+require_relative 'p1_tool/core/input_schema'
+require_relative 'p1_tool/core/input_validator'
+require_relative 'p1_tool/application/operations/hello_world'
+require_relative 'p1_tool/application/dispatcher'
+require_relative 'p1_tool/runtime/config_version'
+require_relative 'p1_tool/runtime/execution_context'
+require_relative 'p1_tool/runtime/task_processor'
+require_relative 'p1_tool/runtime/workspace'
+require_relative 'p1_tool/application/cli'
 
 module P1Tool
   CLI = Application::CLI

@@ -4,7 +4,7 @@ module P1Tool
   module Application
     class Dispatcher
       OPERATIONS = {
-        "hello_world" => Operations::HelloWorld
+        'hello_world' => Operations::HelloWorld
       }.freeze
 
       def self.call(input)
@@ -29,7 +29,7 @@ module P1Tool
         OPERATIONS.fetch(@input.fetch(:operation_kind))
       rescue KeyError
         raise P1Tool::InputValidationError.new(
-          "Unsupported operation_kind",
+          'Unsupported operation_kind',
           details: { operation_kind: ["must be one of: #{self.class.supported_operation_kinds.join(', ')}"] }
         )
       end

@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-ENV["APP_ENV"] = "test"
+ENV['APP_ENV'] = 'test'
 
-require "minitest/autorun"
-require "minitest/spec"
-require "minitest/pride" if ENV["MINITEST_PRIDE"] == "1" || $stdout.tty?
-require "tmpdir"
-require "stringio"
-require "json"
-require "fileutils"
+require 'minitest/autorun'
+require 'minitest/spec'
+require 'minitest/pride' if ENV['MINITEST_PRIDE'] == '1' || $stdout.tty?
+require 'tmpdir'
+require 'stringio'
+require 'json'
+require 'fileutils'
 
-require_relative "../lib/p1_tool"
+require_relative '../lib/p1_tool'
 
 module FixtureHelper
   def fixture_path(*parts)
-    File.join(__dir__, "fixtures", *parts)
+    File.join(__dir__, 'fixtures', *parts)
   end
 
   def fixture_text(*parts)
@@ -26,7 +26,7 @@ module FixtureHelper
   end
 
   def write_config_fixture(target_path, fixture_name:, replacements: {})
-    content = fixture_text("config", fixture_name)
+    content = fixture_text('config', fixture_name)
     replacements.each do |placeholder, value|
       content = content.gsub(placeholder, value)
     end
@@ -37,6 +37,8 @@ module FixtureHelper
   end
 end
 
-class Minitest::Test
-  include FixtureHelper
+module Minitest
+  class Test
+    include FixtureHelper
+  end
 end

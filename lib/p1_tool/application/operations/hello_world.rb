@@ -14,7 +14,7 @@ module P1Tool
 
         def call
           {
-            message: "hello world",
+            message: 'hello world',
             task_id: @input.fetch(:task_id),
             operation_kind: @input.fetch(:operation_kind),
             payload: @input.fetch(:payload)

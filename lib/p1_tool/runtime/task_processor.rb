@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "json"
-require "securerandom"
-require "time"
+require 'json'
+require 'securerandom'
+require 'time'
 
 module P1Tool
   module Runtime
@@ -22,7 +22,8 @@ module P1Tool
         @file_system = file_system
         @clock = clock
         @transport_id_generator = transport_id_generator
-        @audit_log = audit_log || P1Tool::Adapters::AuditLog.new(config.dig(:paths, :audit_log), file_system: file_system, clock: clock)
+        @audit_log = audit_log || P1Tool::Adapters::AuditLog.new(config.dig(:paths, :audit_log),
+                                                                 file_system: file_system, clock: clock)
       end
 
       def call
@@ -30,40 +31,11 @@ module P1Tool
         context = build_context
 
         @audit_log.record_start(context, metadata: { output_path: @output_path })
-
-        parsed_input = parse_input_file
-        context = context.with(
-          task_id: parsed_input["task_id"],
-          operation_kind: parsed_input["operation_kind"]
-        )
-
-        validated_input = P1Tool::Core::InputValidator.validate(
-          parsed_input,
-          operation_kinds: P1Tool::Application::Dispatcher.supported_operation_kinds
-        )
-
-        context = context.with(
-          task_id: validated_input[:task_id],
-          operation_kind: validated_input[:operation_kind]
-        )
-
-        operation_result = P1Tool::Application::Dispatcher.call(validated_input)
-        result = build_result(
-          context,
-          result_kind: "success",
-          started_at: started_at,
-          finished_at: timestamp,
-          details: operation_result
-        )
-
-        persist_result(result)
-        @audit_log.record_finish(context, result: "success", metadata: { output_path: @output_path })
-
-        result
-      rescue P1Tool::InputValidationError, JSON::ParserError => error
-        handle_invalid_input(context, started_at, error)
-      rescue StandardError => error
-        handle_failure(context, started_at, error)
+        process_input(context, started_at)
+      rescue P1Tool::InputValidationError, JSON::ParserError => e
+        handle_invalid_input(context, started_at, e)
+      rescue StandardError => e
+        handle_failure(context, started_at, e)
       end
 
       private
@@ -78,7 +50,7 @@ module P1Tool
           attempt: 1,
           correlation_id: transport_id,
           config_version: P1Tool::Runtime::ConfigVersion.for(@config),
-          runtime_mode: "run_once",
+          runtime_mode: 'run_once',
           source_path: @input_path
         )
       end
@@ -87,53 +59,76 @@ module P1Tool
         JSON.parse(File.read(@input_path))
       end
 
+      def process_input(context, started_at)
+        validated_context, validated_input = validate_input(context)
+        operation_result = P1Tool::Application::Dispatcher.call(validated_input)
+        result = build_result(
+          validated_context,
+          result_kind: 'success',
+          timestamps: build_timestamps(started_at),
+          details: operation_result
+        )
+
+        finalize_result(validated_context, result, result_kind: 'success')
+      end
+
+      def validate_input(context)
+        parsed_input = parse_input_file
+        parsed_context = context_from_input(context, parsed_input)
+        validated_input = P1Tool::Core::InputValidator.validate(
+          parsed_input,
+          operation_kinds: P1Tool::Application::Dispatcher.supported_operation_kinds
+        )
+
+        [context_from_input(parsed_context, validated_input), validated_input]
+      end
+
+      def context_from_input(context, input)
+        context.with(
+          task_id: input[:task_id] || input['task_id'],
+          operation_kind: input[:operation_kind] || input['operation_kind']
+        )
+      end
+
       def handle_invalid_input(context, started_at, error)
         result = build_result(
           context,
-          result_kind: "invalid",
-          started_at: started_at,
-          finished_at: timestamp,
-          error: build_error("invalid_input", error.message, "input"),
+          result_kind: 'invalid',
+          timestamps: build_timestamps(started_at),
+          error: build_error('invalid_input', error.message, 'input'),
           details: invalid_details(error)
         )
 
-        persist_result(result)
-        @audit_log.record_error(
+        record_error(
           context,
-          error_code: "invalid_input",
-          error_category: "input",
+          error_code: 'invalid_input',
+          error_category: 'input',
           metadata: invalid_details(error),
-          result: "invalid"
+          result: 'invalid'
         )
-        @audit_log.record_finish(context, result: "invalid", metadata: { output_path: @output_path })
-
-        result
+        finalize_result(context, result, result_kind: 'invalid')
       end
 
       def handle_failure(context, started_at, error)
         result = build_result(
           context,
-          result_kind: "failure",
-          started_at: started_at,
-          finished_at: timestamp,
-          error: build_error("runtime_error", error.message, "technical"),
+          result_kind: 'failure',
+          timestamps: build_timestamps(started_at),
+          error: build_error('runtime_error', error.message, 'technical'),
           details: { exception_class: error.class.name }
         )
 
-        persist_result(result)
-        @audit_log.record_error(
+        record_error(
           context,
-          error_code: "runtime_error",
-          error_category: "technical",
+          error_code: 'runtime_error',
+          error_category: 'technical',
           metadata: { exception_class: error.class.name, message: error.message },
-          result: "failure"
+          result: 'failure'
         )
-        @audit_log.record_finish(context, result: "failure", metadata: { output_path: @output_path })
-
-        result
+        finalize_result(context, result, result_kind: 'failure')
       end
 
-      def build_result(context, result_kind:, started_at:, finished_at:, error: nil, details: nil)
+      def build_result(context, result_kind:, timestamps:, error: nil, details: nil)
         result = {
           transport_id: context.transport_id,
           task_id: context.task_id,
@@ -141,13 +136,20 @@ module P1Tool
           result_kind: result_kind,
           config_version: context.config_version,
           attempt: context.attempt,
-          started_at: started_at,
-          finished_at: finished_at
+          started_at: timestamps.fetch(:started_at),
+          finished_at: timestamps.fetch(:finished_at)
         }
 
         result[:error] = error unless error.nil?
         result[:details] = details unless details.nil?
         result
+      end
+
+      def build_timestamps(started_at)
+        {
+          started_at: started_at,
+          finished_at: timestamp
+        }
       end
 
       def build_error(code, message, category)
@@ -166,8 +168,24 @@ module P1Tool
       end
 
       def persist_result(result)
-        payload = JSON.pretty_generate(result) + "\n"
+        payload = "#{JSON.pretty_generate(result)}\n"
         @file_system.atomic_write(@output_path, payload)
+      end
+
+      def record_error(context, error_code:, error_category:, metadata:, result:)
+        @audit_log.record_error(
+          context,
+          error_code: error_code,
+          error_category: error_category,
+          metadata: metadata,
+          result: result
+        )
+      end
+
+      def finalize_result(context, payload, result_kind:)
+        persist_result(payload)
+        @audit_log.record_finish(context, result: result_kind, metadata: { output_path: @output_path })
+        payload
       end
 
       def timestamp

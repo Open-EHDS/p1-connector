@@ -1,0 +1,31 @@
+plugins:
+  - rubocop-minitest
+
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+
+Layout/LineLength:
+  Max: 120
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - 'lib/p1_tool/core/configuration_schema.rb'
+
+Metrics/MethodLength:
+  Max: 20
+
+Metrics/ParameterLists:
+  Exclude:
+    - 'lib/p1_tool/runtime/execution_context.rb'
+    - 'lib/p1_tool/runtime/task_processor.rb'
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/Documentation:
+  Enabled: false

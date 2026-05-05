@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "json"
+require 'json'
 
 module P1Tool
   module Runtime
@@ -26,7 +26,7 @@ module P1Tool
 
       def write_result(processing_path, result)
         result_path = File.join(path_for(:results), "#{File.basename(processing_path)}.result.json")
-        payload = JSON.pretty_generate(result) + "\n"
+        payload = "#{JSON.pretty_generate(result)}\n"
 
         @file_system.atomic_write(result_path, payload)
       end

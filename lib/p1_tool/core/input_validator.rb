@@ -22,7 +22,7 @@ module P1Tool
           return normalized_input if details.empty?
         end
 
-        raise P1Tool::InputValidationError.new("Input validation failed", details: details)
+        raise P1Tool::InputValidationError.new('Input validation failed', details: details)
       end
 
       private

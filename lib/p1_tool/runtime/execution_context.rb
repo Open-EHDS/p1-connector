@@ -44,8 +44,8 @@ module P1Tool
       end
 
       def with(**attributes)
-        merged_attributes = ATTRIBUTES.each_with_object({}) do |attribute, result|
-          result[attribute] = public_send(attribute)
+        merged_attributes = ATTRIBUTES.to_h do |attribute|
+          [attribute, public_send(attribute)]
         end.merge(attributes)
 
         self.class.new(**merged_attributes)

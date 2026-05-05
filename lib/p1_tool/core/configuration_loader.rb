@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "yaml"
+require 'yaml'
 
 module P1Tool
   module Core
@@ -18,9 +18,7 @@ module P1Tool
 
         parsed_config = parse_yaml
 
-        unless parsed_config.is_a?(Hash)
-          raise P1Tool::ConfigurationError, "Config root must be a YAML mapping"
-        end
+        raise P1Tool::ConfigurationError, 'Config root must be a YAML mapping' unless parsed_config.is_a?(Hash)
 
         validation = ConfigurationSchema.call(parsed_config)
         return validation.to_h if validation.success?
@@ -34,7 +32,7 @@ module P1Tool
       private
 
       def parse_yaml
-        YAML.safe_load(File.read(@path), aliases: false)
+        YAML.safe_load_file(@path, aliases: false)
       rescue Psych::SyntaxError => e
         raise P1Tool::ConfigurationError, "Invalid YAML in #{@path}: #{e.message}"
       end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "dry/schema"
+require 'dry/schema'
 
 module P1Tool
   module Core

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "fileutils"
-require "securerandom"
+require 'fileutils'
+require 'securerandom'
 
 module P1Tool
   module Adapters
