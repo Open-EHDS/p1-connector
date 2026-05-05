@@ -1,0 +1,5 @@
+inbox_scan:
+  class: P1Tool::Jobs::InboxScanJob
+  cron: "*/15 * * * * *"
+  queue: continuous
+  description: Scan inbox and enqueue processing jobs

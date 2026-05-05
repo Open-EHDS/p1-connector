@@ -26,6 +26,8 @@ module P1Tool
           0
         when 'run-once'
           run_once(@argv)
+        when 'watch'
+          run_watch(@argv)
         when 'verify'
           run_verify(@argv)
         when 'version', '--version', '-v'
@@ -78,6 +80,8 @@ module P1Tool
           Commands:
             run-once --input PATH --output PATH [--config PATH]
                                    Process one input file end-to-end
+            watch [--config PATH] [--sidekiq-config PATH] [--sidekiq-cron-config PATH]
+                                 Start continuous mode with Sidekiq and Redis
             verify [--config PATH]  Load and validate the application config
             version                 Print the application version
             help                    Show this help message
@@ -121,6 +125,27 @@ module P1Tool
         [options, parser]
       end
 
+      def run_watch(argv)
+        options, parser = parse_watch_options(argv)
+
+        P1Tool::Runtime::ContinuousRunner.new(
+          config_path: options[:config_path],
+          sidekiq_config_path: options[:sidekiq_config_path],
+          sidekiq_cron_config_path: options[:sidekiq_cron_config_path],
+          stdout: @stdout
+        ).run
+        0
+      rescue Interrupt
+        0
+      rescue OptionParser::ParseError => e
+        @stderr.puts(e.message)
+        @stderr.puts(parser)
+        1
+      rescue P1Tool::ConfigurationError => e
+        print_configuration_error(e)
+        1
+      end
+
       def load_configuration(config_path)
         P1Tool::Core::ConfigurationLoader.load(config_path)
       end
@@ -131,6 +156,29 @@ module P1Tool
           input_path: options[:input_path],
           output_path: options[:output_path]
         )
+      end
+
+      def parse_watch_options(argv)
+        options = {
+          config_path: DEFAULT_CONFIG_PATH,
+          sidekiq_config_path: P1Tool::Runtime::ContinuousRunner::DEFAULT_SIDEKIQ_CONFIG_PATH,
+          sidekiq_cron_config_path: P1Tool::Runtime::ContinuousRunner::DEFAULT_SIDEKIQ_CRON_CONFIG_PATH
+        }
+        parser = OptionParser.new do |opts|
+          opts.banner = 'Usage: p1-tool watch [--config PATH] [--sidekiq-config PATH] [--sidekiq-cron-config PATH]'
+          opts.on('--config PATH', 'Path to the YAML config file') { |path| options[:config_path] = path }
+          opts.on('--sidekiq-config PATH', 'Path to the Sidekiq YAML config file') do |path|
+            options[:sidekiq_config_path] = path
+          end
+          opts.on('--sidekiq-cron-config PATH', 'Path to the Sidekiq cron YAML config file') do |path|
+            options[:sidekiq_cron_config_path] = path
+          end
+        end
+
+        parser.parse!(argv)
+        raise OptionParser::InvalidOption, argv.join(' ') unless argv.empty?
+
+        [options, parser]
       end
 
       def print_run_once_summary(result, output_path)

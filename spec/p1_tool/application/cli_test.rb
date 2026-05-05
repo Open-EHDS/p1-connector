@@ -21,6 +21,7 @@ describe P1Tool::CLI do
 
       assert_equal 0, exit_code
       assert_includes stdout.string, 'run-once --input PATH --output PATH [--config PATH]'
+      assert_includes stdout.string, 'watch [--config PATH] [--sidekiq-config PATH] [--sidekiq-cron-config PATH]'
       assert_includes stdout.string, 'verify [--config PATH]'
       assert_empty stderr.string
     end
@@ -121,6 +122,33 @@ describe P1Tool::CLI do
         assert_empty stdout.string
         assert_includes stderr.string, 'Configuration error:'
         assert_includes stderr.string, 'paths.processing'
+      end
+    end
+
+    describe 'watch' do
+      it 'starts continuous runner with default config paths' do
+        init_args = nil
+        run_called = false
+        runner = Object.new
+        runner.define_singleton_method(:run) { run_called = true }
+
+        with_singleton_stub(P1Tool::Runtime::ContinuousRunner, :new, lambda { |**kwargs|
+          init_args = kwargs
+          runner
+        }) do
+          exit_code = P1Tool::CLI.start(
+            ['watch', '--config', config_path],
+            stdout: stdout,
+            stderr: stderr
+          )
+
+          assert_equal 0, exit_code
+        end
+
+        assert_equal File.expand_path(config_path), File.expand_path(init_args.fetch(:config_path))
+        assert_equal stdout, init_args.fetch(:stdout)
+        assert run_called
+        assert_empty stderr.string
       end
     end
   end

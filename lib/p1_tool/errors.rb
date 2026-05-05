@@ -3,6 +3,8 @@
 module P1Tool
   class Error < StandardError; end
 
+  class RuntimeNotBootstrappedError < Error; end
+
   class InputValidationError < Error
     attr_reader :details
 
@@ -20,4 +22,7 @@ module P1Tool
       super(message)
     end
   end
+
+  class BusinessError < Error; end
+  class TransientError < Error; end
 end
