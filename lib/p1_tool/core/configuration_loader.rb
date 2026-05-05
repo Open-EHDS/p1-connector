@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'erb'
 require 'yaml'
 
 module P1Tool
@@ -32,9 +33,16 @@ module P1Tool
       private
 
       def parse_yaml
-        YAML.safe_load_file(@path, aliases: false)
+        rendered_config = render_erb
+        YAML.safe_load(rendered_config, aliases: false)
       rescue Psych::SyntaxError => e
         raise P1Tool::ConfigurationError, "Invalid YAML in #{@path}: #{e.message}"
+      end
+
+      def render_erb
+        ERB.new(File.read(@path)).result(binding)
+      rescue StandardError => e
+        raise P1Tool::ConfigurationError, "Invalid ERB in #{@path}: #{e.message}"
       end
     end
   end

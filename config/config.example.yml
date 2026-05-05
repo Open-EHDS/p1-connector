@@ -1,16 +1,16 @@
 paths:
-  inbox: /data/inbox
-  processing: /data/processing
-  done: /data/done
-  invalid: /data/invalid
-  results: /data/results
-  audit_log: /logs/audit.jsonl
+  inbox: <%= ENV['P1_INBOX_PATH'] || "#{ENV['P1_DATA_ROOT'] || './var/data'}/inbox" %>
+  processing: <%= ENV['P1_PROCESSING_PATH'] || "#{ENV['P1_DATA_ROOT'] || './var/data'}/processing" %>
+  done: <%= ENV['P1_DONE_PATH'] || "#{ENV['P1_DATA_ROOT'] || './var/data'}/done" %>
+  invalid: <%= ENV['P1_INVALID_PATH'] || "#{ENV['P1_DATA_ROOT'] || './var/data'}/invalid" %>
+  results: <%= ENV['P1_RESULTS_PATH'] || "#{ENV['P1_DATA_ROOT'] || './var/data'}/results" %>
+  audit_log: <%= ENV['P1_AUDIT_LOG_PATH'] || "#{ENV['P1_LOGS_ROOT'] || './var/logs'}/audit.jsonl" %>
 
 redis:
-  url: redis://redis:6379/0
+  url: <%= ENV['REDIS_URL'] || 'redis://127.0.0.1:6379/0' %>
 
 signature_service:
-  url: http://signature-service:8080
+  url: <%= ENV['SIGNATURE_SERVICE_URL'] || 'http://127.0.0.1:8080' %>
 
 subject:
   oid: "1.2.616.1.113883.3.4424.1.1"
@@ -21,7 +21,7 @@ subject:
   medical_chamber: "NIL"
 
 certificates:
-  base_path: /certs
+  base_path: <%= ENV['P1_CERTIFICATES_BASE_PATH'] || './var/certs' %>
   signing:
     filename: signing.p12
     password_env: SIGNING_CERT_PASSWORD

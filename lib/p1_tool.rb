@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
+require_relative 'p1_tool/env_loader'
+
+P1Tool::EnvLoader.load!
 
 app_env = ENV.fetch('APP_ENV', 'development')
 

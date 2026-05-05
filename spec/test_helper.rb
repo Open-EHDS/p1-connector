@@ -138,7 +138,7 @@ module FixtureHelper
   rescue Timeout::Error
     raise "Redis at #{url} did not become ready within #{timeout} seconds"
   ensure
-    pool&.close
+    pool&.shutdown { |conn| conn.close }
   end
 end
 
