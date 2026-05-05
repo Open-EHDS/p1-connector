@@ -4,8 +4,19 @@ require 'optparse'
 
 module P1Tool
   module Application
+    # Rubocop metric kept local here because command dispatch and option parsing
+    # intentionally live together in one CLI entrypoint.
+    # rubocop:disable Metrics/ClassLength
     class CLI
       DEFAULT_CONFIG_PATH = File.expand_path('../../../config/config.yml', __dir__)
+      HELP_COMMANDS = [nil, 'help', '--help', '-h'].freeze
+      VERSION_COMMANDS = %w[version --version -v].freeze
+      COMMAND_HANDLERS = {
+        'run-once' => :run_once,
+        'watch' => :run_watch,
+        'recover' => :run_recover,
+        'verify' => :run_verify
+      }.freeze
 
       def self.start(argv, stdout: $stdout, stderr: $stderr)
         new(argv, stdout: stdout, stderr: stderr).start
@@ -19,26 +30,13 @@ module P1Tool
 
       def start
         command = @argv.shift
+        return print_help if HELP_COMMANDS.include?(command)
+        return print_version if VERSION_COMMANDS.include?(command)
 
-        case command
-        when nil, 'help', '--help', '-h'
-          @stdout.puts(help_text)
-          0
-        when 'run-once'
-          run_once(@argv)
-        when 'watch'
-          run_watch(@argv)
-        when 'verify'
-          run_verify(@argv)
-        when 'version', '--version', '-v'
-          @stdout.puts(P1Tool::VERSION)
-          0
-        else
-          @stderr.puts("Unknown command: #{command}")
-          @stderr.puts
-          @stderr.puts(help_text)
-          1
-        end
+        handler = COMMAND_HANDLERS[command]
+        return send(handler, @argv) if handler
+
+        print_unknown_command(command)
       end
 
       private
@@ -82,6 +80,7 @@ module P1Tool
                                    Process one input file end-to-end
             watch [--config PATH] [--sidekiq-config PATH] [--sidekiq-cron-config PATH]
                                  Start continuous mode with Sidekiq and Redis
+            recover [--config PATH] Recover files from processing back to inbox
             verify [--config PATH]  Load and validate the application config
             version                 Print the application version
             help                    Show this help message
@@ -146,9 +145,25 @@ module P1Tool
         1
       end
 
-      def load_configuration(config_path)
-        P1Tool::Core::ConfigurationLoader.load(config_path)
+      def run_recover(argv)
+        options, parser = parse_recover_options(argv)
+        config = load_configuration(options[:config_path])
+        workspace = P1Tool::Runtime::Workspace.new(config)
+        workspace.prepare!
+        recovered_files = P1Tool::Runtime::ProcessingRecovery.new(workspace).call
+
+        print_recover_summary(recovered_files, options[:config_path])
+        0
+      rescue OptionParser::ParseError => e
+        @stderr.puts(e.message)
+        @stderr.puts(parser)
+        1
+      rescue P1Tool::ConfigurationError => e
+        print_configuration_error(e)
+        1
       end
+
+      def load_configuration(config_path) = P1Tool::Core::ConfigurationLoader.load(config_path)
 
       def build_task_processor(options)
         P1Tool::Runtime::TaskProcessor.new(
@@ -181,22 +196,68 @@ module P1Tool
         [options, parser]
       end
 
+      def parse_recover_options(argv)
+        options = { config_path: DEFAULT_CONFIG_PATH }
+        parser = OptionParser.new do |opts|
+          opts.banner = 'Usage: p1-tool recover [--config PATH]'
+          opts.on('--config PATH', 'Path to the YAML config file') { |path| options[:config_path] = path }
+        end
+
+        parser.parse!(argv)
+        raise OptionParser::InvalidOption, argv.join(' ') unless argv.empty?
+
+        [options, parser]
+      end
+
       def print_run_once_summary(result, output_path)
-        @stdout.puts("Execution finished with #{result.fetch(:result_kind)}")
-        @stdout.puts("Result path: #{File.expand_path(output_path)}")
-        @stdout.puts("Transport ID: #{result.fetch(:transport_id)}")
+        print_lines(
+          "Execution finished with #{result.fetch(:result_kind)}",
+          "Result path: #{File.expand_path(output_path)}",
+          "Transport ID: #{result.fetch(:transport_id)}"
+        )
       end
 
       def print_verify_summary(config, config_path)
-        @stdout.puts('Configuration OK')
-        @stdout.puts("Config path: #{File.expand_path(config_path)}")
-        @stdout.puts("Subject OID: #{config.dig(:subject, :oid)}")
-        @stdout.puts("Redis URL: #{config.dig(:redis, :url)}")
+        print_lines(
+          'Configuration OK',
+          "Config path: #{File.expand_path(config_path)}",
+          "Subject OID: #{config.dig(:subject, :oid)}",
+          "Redis URL: #{config.dig(:redis, :url)}"
+        )
+      end
+
+      def print_recover_summary(recovered_files, config_path)
+        print_lines(
+          'Recovery finished',
+          "Config path: #{File.expand_path(config_path)}",
+          "Recovered files: #{recovered_files.size}"
+        )
       end
 
       def print_configuration_error(error)
         @stderr.puts("Configuration error: #{error.message}")
         format_details(error.details).each { |line| @stderr.puts(line) }
+      end
+
+      def print_help
+        @stdout.puts(help_text)
+        0
+      end
+
+      def print_version
+        @stdout.puts(P1Tool::VERSION)
+        0
+      end
+
+      def print_unknown_command(command)
+        @stderr.puts("Unknown command: #{command}")
+        @stderr.puts
+        @stderr.puts(help_text)
+        1
+      end
+
+      def print_lines(*lines)
+        lines.each { |line| @stdout.puts(line) }
       end
 
       def format_details(details, prefix = nil)
@@ -214,5 +275,6 @@ module P1Tool
         end
       end
     end
+    # rubocop:enable Metrics/ClassLength
   end
 end

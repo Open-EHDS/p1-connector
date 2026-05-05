@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../test_helper'
+require 'yaml'
 
 describe P1Tool::CLI do
   let(:tmpdir) { Dir.mktmpdir }
@@ -22,6 +23,7 @@ describe P1Tool::CLI do
       assert_equal 0, exit_code
       assert_includes stdout.string, 'run-once --input PATH --output PATH [--config PATH]'
       assert_includes stdout.string, 'watch [--config PATH] [--sidekiq-config PATH] [--sidekiq-cron-config PATH]'
+      assert_includes stdout.string, 'recover [--config PATH] Recover files from processing back to inbox'
       assert_includes stdout.string, 'verify [--config PATH]'
       assert_empty stderr.string
     end
@@ -148,6 +150,29 @@ describe P1Tool::CLI do
         assert_equal File.expand_path(config_path), File.expand_path(init_args.fetch(:config_path))
         assert_equal stdout, init_args.fetch(:stdout)
         assert run_called
+        assert_empty stderr.string
+      end
+    end
+
+    describe 'recover' do
+      it 'moves files from processing to inbox' do
+        config = runtime_config_for(tmpdir, audit_log_path:)
+        File.write(config_path, YAML.dump(JSON.parse(JSON.generate(config))))
+        processing_path = File.join(config.dig(:paths, :processing), 'task-1.json')
+        FileUtils.mkdir_p(File.dirname(processing_path))
+        File.write(processing_path, "{\"task_id\":\"1\"}\n")
+
+        exit_code = P1Tool::CLI.start(
+          ['recover', '--config', config_path],
+          stdout: stdout,
+          stderr: stderr
+        )
+
+        assert_equal 0, exit_code
+        assert_includes stdout.string, 'Recovery finished'
+        assert_includes stdout.string, 'Recovered files: 1'
+        assert_path_exists File.join(config.dig(:paths, :inbox), 'task-1.json')
+        refute_path_exists processing_path
         assert_empty stderr.string
       end
     end

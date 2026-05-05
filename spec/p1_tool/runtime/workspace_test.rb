@@ -50,6 +50,20 @@ describe P1Tool::Runtime::Workspace do
     end
   end
 
+  describe '#processing_files' do
+    it 'lists files in processing directory' do
+      workspace = workspace_class.new(workspace_config)
+      workspace.prepare!
+
+      first_path = File.join(workspace.path_for(:processing), 'task-1.json')
+      second_path = File.join(workspace.path_for(:processing), 'task-2.json')
+      File.write(first_path, "{\"task_id\":\"1\"}\n")
+      File.write(second_path, "{\"task_id\":\"2\"}\n")
+
+      assert_equal [first_path, second_path], workspace.processing_files
+    end
+  end
+
   describe '#write_result' do
     it 'stores result json in results directory' do
       workspace = workspace_class.new(workspace_config)
@@ -100,6 +114,22 @@ describe P1Tool::Runtime::Workspace do
       destination_path = workspace.move_to_invalid(processing_path)
 
       assert_equal File.join(workspace.path_for(:invalid), 'task-2.json'), destination_path
+      refute_path_exists processing_path
+      assert_path_exists destination_path
+    end
+  end
+
+  describe '#recover_processing_file' do
+    it 'moves file from processing back to inbox' do
+      workspace = workspace_class.new(workspace_config)
+      workspace.prepare!
+
+      processing_path = File.join(workspace.path_for(:processing), 'task-3.json')
+      File.write(processing_path, "{\"task_id\":\"3\"}\n")
+
+      destination_path = workspace.recover_processing_file(processing_path)
+
+      assert_equal File.join(workspace.path_for(:inbox), 'task-3.json'), destination_path
       refute_path_exists processing_path
       assert_path_exists destination_path
     end

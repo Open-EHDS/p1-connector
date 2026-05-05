@@ -20,8 +20,16 @@ module P1Tool
         @file_system.regular_files(path_for(:inbox))
       end
 
+      def processing_files
+        @file_system.regular_files(path_for(:processing))
+      end
+
       def claim_inbox_file(inbox_path)
         @file_system.atomic_move(inbox_path, processing_path_for(inbox_path))
+      end
+
+      def recover_processing_file(processing_path)
+        @file_system.atomic_move(processing_path, destination_path_for(:inbox, processing_path))
       end
 
       def write_result(processing_path, result)
