@@ -29,7 +29,7 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
 
   it 'stores success result and moves file to done' do
     processing_path = File.join(workspace.path_for(:processing), 'task-1.json')
-    File.write(processing_path, JSON.pretty_generate(fixture_json('runtime', 'valid_input.json')))
+    File.write(processing_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
     result = processor_class.new(
       config,
@@ -77,10 +77,14 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
 
   it 're-raises retryable failures on first attempt and keeps file in processing' do
     processing_path = File.join(workspace.path_for(:processing), 'task-3.json')
-    File.write(processing_path, JSON.pretty_generate(fixture_json('runtime', 'valid_input.json')))
+    File.write(processing_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
     error = assert_raises(StandardError) do
-      with_singleton_stub(P1Tool::Application::Dispatcher, :call, ->(_input) { raise StandardError, 'boom' }) do
+      with_singleton_stub(
+        P1Tool::Application::Dispatcher,
+        :call_with_config,
+        ->(_input, config:) { raise StandardError, 'boom' }
+      ) do
         processor_class.new(
           config,
           processing_path:,
@@ -104,9 +108,13 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
 
   it 'stores terminal failure on second attempt and moves file to done' do
     processing_path = File.join(workspace.path_for(:processing), 'task-4.json')
-    File.write(processing_path, JSON.pretty_generate(fixture_json('runtime', 'valid_input.json')))
+    File.write(processing_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
-    result = with_singleton_stub(P1Tool::Application::Dispatcher, :call, ->(_input) { raise StandardError, 'boom' }) do
+    result = with_singleton_stub(
+      P1Tool::Application::Dispatcher,
+      :call_with_config,
+      ->(_input, config:) { raise StandardError, 'boom' }
+    ) do
       processor_class.new(
         config,
         processing_path:,

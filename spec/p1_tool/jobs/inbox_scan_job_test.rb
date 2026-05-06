@@ -18,7 +18,7 @@ describe P1Tool::Jobs::InboxScanJob do
 
   it 'claims inbox files and enqueues processing jobs' do
     inbox_path = File.join(config.dig(:paths, :inbox), 'task-1.json')
-    File.write(inbox_path, JSON.pretty_generate(fixture_json('runtime', 'valid_input.json')))
+    File.write(inbox_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
     enqueued = []
 

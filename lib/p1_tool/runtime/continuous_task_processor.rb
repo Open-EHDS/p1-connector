@@ -58,7 +58,7 @@ module P1Tool
 
       def process_input(context, started_at)
         validated_context, validated_input = validate_input(context)
-        operation_result = P1Tool::Application::Dispatcher.call(validated_input)
+        operation_result = P1Tool::Application::Dispatcher.call_with_config(validated_input, config: @config)
         result = build_result(
           validated_context,
           result_kind: 'success',

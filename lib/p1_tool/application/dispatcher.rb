@@ -4,23 +4,28 @@ module P1Tool
   module Application
     class Dispatcher
       OPERATIONS = {
-        'hello_world' => Operations::HelloWorld
+        'register_encounter' => Operations::RegisterEncounter
       }.freeze
 
       def self.call(input)
         new(input).call
       end
 
+      def self.call_with_config(input, config:)
+        new(input, config: config).call
+      end
+
       def self.supported_operation_kinds
         OPERATIONS.keys
       end
 
-      def initialize(input)
+      def initialize(input, config: nil)
         @input = input
+        @config = config
       end
 
       def call
-        operation_class.call(@input)
+        operation_class.call(@input, config: @config)
       end
 
       private

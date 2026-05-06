@@ -45,15 +45,17 @@ describe P1Tool::Runtime::TaskProcessor do
 
   describe '#call' do
     it 'processes valid input end-to-end' do
-      File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'valid_input.json')))
+      File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
       result = processor.call
 
       assert_equal 'success', result[:result_kind]
       assert_equal 'transport-1', result[:transport_id]
-      assert_equal 'task-1', result[:task_id]
-      assert_equal 'hello_world', result[:operation_kind]
-      assert_equal 'hello world', result.dig(:details, :message)
+      assert_equal 'register-encounter-task-1', result[:task_id]
+      assert_equal 'register_encounter', result[:operation_kind]
+      assert_equal 'Encounter', result.dig(:details, :resource_type)
+      assert_equal 'stubbed', result.dig(:details, :patient_resolution, :status)
+      refute result[:details].key?(:xml)
 
       persisted_result = JSON.parse(File.read(output_path))
 
@@ -92,6 +94,24 @@ describe P1Tool::Runtime::TaskProcessor do
       end)
       assert_equal 'invalid', audit_lines[1].fetch('result')
       assert_equal 'invalid', audit_lines[2].fetch('result')
+    end
+
+    it 'processes register encounter input without exposing XML in result details' do
+      File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
+
+      result = processor.call
+
+      assert_equal 'success', result[:result_kind]
+      assert_equal 'register_encounter', result[:operation_kind]
+      assert_equal 'Encounter', result.dig(:details, :resource_type)
+      assert_equal 'stub-patient-75061134485', result.dig(:details, :patient_reference_id)
+      refute result[:details].key?(:xml)
+
+      persisted_result = JSON.parse(File.read(output_path))
+
+      assert_equal 'success', persisted_result.fetch('result_kind')
+      assert_equal 'Encounter', persisted_result.fetch('details').fetch('resource_type')
+      refute persisted_result.fetch('details').key?('xml')
     end
   end
 end

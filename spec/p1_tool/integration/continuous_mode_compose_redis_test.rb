@@ -41,7 +41,7 @@ describe 'continuous mode with compose redis' do
       done_path = File.join(config.dig(:paths, :done), 'task-1.json')
       processing_path = File.join(config.dig(:paths, :processing), 'task-1.json')
 
-      File.write(inbox_path, JSON.pretty_generate(fixture_json('runtime', 'valid_input.json')))
+      File.write(inbox_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
       P1Tool::Jobs::InboxScanJob.perform_async
 

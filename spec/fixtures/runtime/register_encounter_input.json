@@ -1,0 +1,20 @@
+{
+  "task_id": "register-encounter-task-1",
+  "operation_kind": "register_encounter",
+  "payload": {
+    "patient": {
+      "pesel": "75061134485",
+      "first_name": "Dorota",
+      "last_name": "Kalandyk"
+    },
+    "doctor": {
+      "npwz": "3548362",
+      "profession_code": "LEK",
+      "name": "Dorota358 Leczniczy"
+    },
+    "encounter": {
+      "start_time": "2021-09-28T12:30:00+02:00",
+      "end_time": "2021-09-28T13:00:00+02:00"
+    }
+  }
+}

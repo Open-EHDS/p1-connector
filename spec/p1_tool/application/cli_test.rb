@@ -38,7 +38,7 @@ describe P1Tool::CLI do
       end
 
       it 'processes valid input file' do
-        File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'valid_input.json')))
+        File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
         exit_code = P1Tool::CLI.start(
           ['run-once', '--config', config_path, '--input', input_path, '--output', output_path],

@@ -1,7 +1,0 @@
-{
-  "task_id": "task-1",
-  "operation_kind": "hello_world",
-  "payload": {
-    "name": "Alice"
-  }
-}

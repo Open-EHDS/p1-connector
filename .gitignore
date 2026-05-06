@@ -1,5 +1,6 @@
 .bundle/
 .codex
+.agent-local.md
 .idea/
 .env
 vendor/bundle/
@@ -18,3 +19,4 @@ tmp/*
 *.swo
 
 .DS_Store
+/volumes/

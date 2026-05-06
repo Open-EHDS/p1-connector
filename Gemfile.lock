@@ -71,6 +71,8 @@ GEM
     minitest (6.0.5)
       drb (~> 2.0)
       prism (~> 1.5)
+    nokogiri (1.19.3-x86_64-linux-gnu)
+      racc (~> 1.4)
     parallel (2.1.0)
     parser (3.3.11.1)
       ast (~> 2.4.1)
@@ -131,12 +133,12 @@ GEM
     zeitwerk (2.7.5)
 
 PLATFORMS
-  ruby
   x86_64-linux
 
 DEPENDENCIES
   dry-schema
   minitest
+  nokogiri
   pry
   rake
   rubocop
