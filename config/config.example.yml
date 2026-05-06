@@ -12,19 +12,27 @@ redis:
 signature_service:
   url: <%= ENV['SIGNATURE_SERVICE_URL'] || 'http://127.0.0.1:8080' %>
 
+p1:
+  environment: <%= ENV['P1_ENVIRONMENT'] || 'integration' %>
+  request_timeout_seconds: <%= ENV['P1_REQUEST_TIMEOUT_SECONDS'] || 180 %>
+
 subject:
-  oid: "1.2.616.1.113883.3.4424.1.1"
-  identification_code: "1234567890"
-  department_code_v: "1234"
-  department_code_vii: "1234567"
+  oid: "2.16.840.1.113883.3.4424.2.7.659"
+  identification_code: "000000926988"
+  department_code_v: "00"
+  department_code_vii: "001"
   is_practice: false
   medical_chamber: "NIL"
+  name: "IQ DENTAL TEST"
+  regon: "81431692500000"
+  address: "99-205, Lodz, ul. Lodowa 1 / 14"
+  phone: "987654321"
 
 certificates:
-  base_path: <%= ENV['P1_CERTIFICATES_BASE_PATH'] || './var/certs' %>
-  signing:
-    filename: signing.p12
-    password_env: SIGNING_CERT_PASSWORD
+  base_path: <%= ENV['P1_CERTIFICATES_BASE_PATH'] || './volumes/certs' %>
+  wss:
+    filename: Podmiot_leczniczy_358-wss.p12
+    password_env: WSS_CERT_PASSWORD
   tls:
-    filename: tls.p12
+    filename: Podmiot_leczniczy_358-tls.p12
     password_env: TLS_CERT_PASSWORD

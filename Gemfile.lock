@@ -55,6 +55,12 @@ GEM
       zeitwerk (~> 2.6)
     et-orbi (1.4.0)
       tzinfo
+    faraday (2.14.1)
+      faraday-net_http (>= 2.0, < 3.5)
+      json
+      logger
+    faraday-net_http (3.4.2)
+      net-http (~> 0.5)
     fugit (1.12.1)
       et-orbi (~> 1.4)
       raabro (~> 1.4)
@@ -64,6 +70,8 @@ GEM
       concurrent-ruby (~> 1.0)
     io-console (0.8.2)
     json (2.19.4)
+    jwt (3.1.2)
+      base64
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -71,6 +79,8 @@ GEM
     minitest (6.0.5)
       drb (~> 2.0)
       prism (~> 1.5)
+    net-http (0.9.1)
+      uri (>= 0.11.1)
     nokogiri (1.19.3-x86_64-linux-gnu)
       racc (~> 1.4)
     parallel (2.1.0)
@@ -137,6 +147,8 @@ PLATFORMS
 
 DEPENDENCIES
   dry-schema
+  faraday
+  jwt
   minitest
   nokogiri
   pry

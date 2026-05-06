@@ -40,11 +40,15 @@ describe P1Tool::CLI do
       it 'processes valid input file' do
         File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
-        exit_code = P1Tool::CLI.start(
-          ['run-once', '--config', config_path, '--input', input_path, '--output', output_path],
-          stdout: stdout,
-          stderr: stderr
-        )
+        exit_code = with_stubbed_pkcs12_validation do
+          with_fake_p1_client_factory do
+            P1Tool::CLI.start(
+              ['run-once', '--config', config_path, '--input', input_path, '--output', output_path],
+              stdout: stdout,
+              stderr: stderr
+            )
+          end
+        end
 
         assert_equal 0, exit_code
         assert_includes stdout.string, 'Execution finished with success'
@@ -68,11 +72,13 @@ describe P1Tool::CLI do
           JSON.pretty_generate(fixture_json('runtime', 'invalid_input_missing_operation_kind.json'))
         )
 
-        exit_code = P1Tool::CLI.start(
-          ['run-once', '--config', config_path, '--input', input_path, '--output', output_path],
-          stdout: stdout,
-          stderr: stderr
-        )
+        exit_code = with_stubbed_pkcs12_validation do
+          P1Tool::CLI.start(
+            ['run-once', '--config', config_path, '--input', input_path, '--output', output_path],
+            stdout: stdout,
+            stderr: stderr
+          )
+        end
 
         assert_equal 1, exit_code
         assert_includes stdout.string, 'Execution finished with invalid'
@@ -91,11 +97,13 @@ describe P1Tool::CLI do
       end
 
       it 'loads and validates config' do
-        exit_code = P1Tool::CLI.start(
-          ['verify', '--config', config_path],
-          stdout: stdout,
-          stderr: stderr
-        )
+        exit_code = with_stubbed_pkcs12_validation do
+          P1Tool::CLI.start(
+            ['verify', '--config', config_path],
+            stdout: stdout,
+            stderr: stderr
+          )
+        end
 
         assert_equal 0, exit_code
         assert_includes stdout.string, 'Configuration OK'
@@ -162,11 +170,13 @@ describe P1Tool::CLI do
         FileUtils.mkdir_p(File.dirname(processing_path))
         File.write(processing_path, "{\"task_id\":\"1\"}\n")
 
-        exit_code = P1Tool::CLI.start(
-          ['recover', '--config', config_path],
-          stdout: stdout,
-          stderr: stderr
-        )
+        exit_code = with_stubbed_pkcs12_validation do
+          P1Tool::CLI.start(
+            ['recover', '--config', config_path],
+            stdout: stdout,
+            stderr: stderr
+          )
+        end
 
         assert_equal 0, exit_code
         assert_includes stdout.string, 'Recovery finished'

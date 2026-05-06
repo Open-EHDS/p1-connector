@@ -13,6 +13,8 @@ Na obecnym etapie projekt udostepnia lokalny tryb jednorazowego wykonania `run-o
 Aktualnie dostepne sa:
 
 - walidacja konfiguracji z pliku YAML
+- wybor srodowiska P1: `integration` (`isus.ezdrowie.gov.pl`) albo `production` (`sus.ezdrowie.gov.pl`)
+- komunikacja z P1 oparta o JWT WSS + mutual TLS
 - przetworzenie pojedynczego pliku JSON w trybie `run-once`
 - tryb ciagly `watch` z embedded `Sidekiq`
 - cykliczne skanowanie `inbox` przez `sidekiq-cron`
@@ -20,6 +22,11 @@ Aktualnie dostepne sa:
 - minimalna polityka retry dla bledow technicznych: maksymalnie 2 proby lacznie
 - walidacja minimalnego kontraktu wejscia
 - operacja biznesowa `register_encounter`
+- realna integracja `register_encounter` z P1:
+  - pobranie tokenu
+  - wyszukanie pacjenta
+  - utworzenie pacjenta, jesli nie istnieje
+  - utworzenie albo aktualizacja `Encounter`
 - zapis wyniku do pliku JSON
 - zapis audytu technicznego do pliku JSON Lines
 
@@ -64,18 +71,29 @@ Konfiguracja obejmuje:
 - konfiguracje `Sidekiq` w `config/sidekiq.yml`
 - harmonogram `sidekiq-cron` w `config/sidekiq-cron.yml`
 - adres `signature_service`
+- konfiguracje P1 w sekcji `p1`
 - dane `subject`
-- konfiguracje certyfikatow
+- konfiguracje certyfikatow `wss` i `tls`
 
 Wazne:
 
 - dla trybu `run-once` wynik jest zapisywany pod sciezka przekazana parametrem `--output`
 - plik audytowy jest zapisywany pod sciezka `paths.audit_log` z konfiguracji
 - debugowe XML-e moga byc zapisywane po ustawieniu `P1_DEBUG_XML=1`; katalog mozna nadpisac przez `P1_DEBUG_XML_PATH`
+- `p1.environment` przelacza host docelowy:
+  - `integration` -> `https://isus.ezdrowie.gov.pl`
+  - `production` -> `https://sus.ezdrowie.gov.pl`
+- konfiguracja jest walidowana semantycznie przy starcie:
+  - sprawdzenie wymaganych envow z haslami
+  - sprawdzenie odczytu plikow `wss` i `tls`
+  - proba otwarcia obu plikow PKCS#12
 - katalogi `inbox`, `processing`, `done`, `invalid`, `results` sa juz czescia modelu konfiguracji, ale pelny lifecycle katalogowy bedzie wykorzystywany przez tryb ciagly
 - `config/config.example.yml` mozna odpalic lokalnie bez zmian, albo nadpisac katalogi przez `.env`
 - najprostszy model to ustawienie `P1_DATA_ROOT`, `P1_LOGS_ROOT` i `P1_CERTIFICATES_BASE_PATH`
 - jesli integrator chce pelnej kontroli, moze nadpisac kazda sciezke osobno przez `P1_INBOX_PATH`, `P1_PROCESSING_PATH`, `P1_DONE_PATH`, `P1_INVALID_PATH`, `P1_RESULTS_PATH` i `P1_AUDIT_LOG_PATH`
+- hasla do certyfikatow sa czytane z envow wskazanych przez:
+  - `certificates.wss.password_env`
+  - `certificates.tls.password_env`
 
 ## Docker Compose
 
@@ -242,7 +260,6 @@ Zapisywane sa zdarzenia:
 
 Obecna wersja nie udostepnia jeszcze:
 
-- realnych operacji P1
 - integracji z realnym API `signature-service`
 - uruchamiania aplikacji Ruby przez `docker compose`
 

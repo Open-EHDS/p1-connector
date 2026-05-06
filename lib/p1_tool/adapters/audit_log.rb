@@ -41,6 +41,15 @@ module P1Tool
         )
       end
 
+      def record_event(context, event_type:, metadata: nil, result: nil)
+        append_event(
+          context,
+          event_type: event_type,
+          result: result,
+          metadata: metadata
+        )
+      end
+
       private
 
       def append_event(context, **attributes)

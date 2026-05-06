@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'bundler/setup'
+
+$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
+
+require 'p1_tool/env_loader'
+
+P1Tool::EnvLoader.load!
+
+app_env = ENV.fetch('APP_ENV', 'development')
+
+require 'pry' if %w[development test].include?(app_env)
+
+require 'p1_tool'
+
+exit P1Tool::Application::LiveSmokeRunner.start(ARGV)

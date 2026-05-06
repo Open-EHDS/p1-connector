@@ -8,24 +8,42 @@ describe P1Tool::Application::Operations::RegisterEncounter do
   let(:config) { runtime_config_for('/tmp/p1-tool') }
 
   describe '.call' do
-    it 'returns encounter metadata and uses patient resolver stub' do
+    it 'returns encounter metadata using fake P1 client' do
       result = operation_class.call(
         {
           task_id: input.fetch('task_id'),
           operation_kind: input.fetch('operation_kind'),
           payload: input.fetch('payload')
         },
-        config: config
+        config: config,
+        p1_client: build_fake_p1_client
       )
 
       assert_equal 'Encounter', result[:resource_type]
       assert_match(/\A[\h-]{36}\z/, result[:encounter_identifier])
       assert_match(/\A[\h-]{36}\z/, result[:episode_identifier])
       assert_equal 'stub-patient-75061134485', result[:patient_reference_id]
-      assert_equal 'stubbed', result.dig(:patient_resolution, :status)
-      assert_equal 'stubbed', result.dig(:submission, :status)
+      assert_equal 'found', result.dig(:patient_resolution, :status)
+      assert_equal 'created', result.dig(:submission, :status)
       refute result.key?(:xml)
       refute result.key?(:debug_xml_path)
+    end
+
+    it 'updates encounter when resource_id is present' do
+      result = operation_class.call(
+        {
+          task_id: input.fetch('task_id'),
+          operation_kind: input.fetch('operation_kind'),
+          payload: input.fetch('payload').merge('encounter' => input.fetch('payload').fetch('encounter').merge('resource_id' => 'enc-123'))
+        },
+        config: config,
+        p1_client: build_fake_p1_client
+      )
+
+      assert_equal 'stub-patient-75061134485', result[:patient_reference_id]
+      assert_equal 'found', result.dig(:patient_resolution, :status)
+      assert_equal 'updated', result.dig(:submission, :status)
+      assert_equal 'enc-123', result.dig(:submission, :reference_id)
     end
 
     it 'rejects payload without doctor identifier' do

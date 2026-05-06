@@ -31,16 +31,18 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
     processing_path = File.join(workspace.path_for(:processing), 'task-1.json')
     File.write(processing_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
-    result = processor_class.new(
-      config,
-      processing_path:,
-      runtime: {
-        workspace:,
-        audit_log:,
-        clock:,
-        transport_id_generator: -> { transport_id }
-      }
-    ).call
+    result = with_fake_p1_client_factory do
+      processor_class.new(
+        config,
+        processing_path:,
+        runtime: {
+          workspace:,
+          audit_log:,
+          clock:,
+          transport_id_generator: -> { transport_id }
+        }
+      ).call
+    end
 
     assert_equal 'success', result[:result_kind]
     assert_equal 1, result[:attempt]
@@ -48,6 +50,18 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
     result_path = File.join(workspace.path_for(:results), 'task-1.json.result.json')
 
     assert_equal 'success', JSON.parse(File.read(result_path)).fetch('result_kind')
+
+    audit_lines = File.readlines(audit_log_path, chomp: true).map { |line| JSON.parse(line) }
+
+    assert_equal(
+      %w[
+        execution_started
+        p1_patient_lookup_finished
+        p1_encounter_submitted
+        execution_finished
+      ],
+      audit_lines.map { |entry| entry.fetch('event_type') }
+    )
   end
 
   it 'stores invalid result and moves file to invalid' do
@@ -132,9 +146,15 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
     assert_equal 'failure', result[:result_kind]
     assert_equal 'technical', result.dig(:error, :category)
     assert_equal 2, result[:attempt]
+    assert_equal 'register-encounter-task-1', result[:task_id]
+    assert_equal 'register_encounter', result[:operation_kind]
     assert_path_exists File.join(workspace.path_for(:done), 'task-4.json')
     result_path = File.join(workspace.path_for(:results), 'task-4.json.result.json')
 
-    assert_equal 'failure', JSON.parse(File.read(result_path)).fetch('result_kind')
+    persisted_result = JSON.parse(File.read(result_path))
+
+    assert_equal 'failure', persisted_result.fetch('result_kind')
+    assert_equal 'register-encounter-task-1', persisted_result.fetch('task_id')
+    assert_equal 'register_encounter', persisted_result.fetch('operation_kind')
   end
 end

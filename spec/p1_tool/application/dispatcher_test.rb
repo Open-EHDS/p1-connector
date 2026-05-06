@@ -7,14 +7,16 @@ describe P1Tool::Application::Dispatcher do
     let(:config) { runtime_config_for('/tmp/p1-tool') }
 
     it 'invokes register_encounter operation' do
-      result = P1Tool::Application::Dispatcher.call_with_config(
-        {
-          task_id: 'task-register-encounter-1',
-          operation_kind: 'register_encounter',
-          payload: fixture_json('runtime', 'register_encounter_input.json').fetch('payload')
-        },
-        config: config
-      )
+      result = with_fake_p1_client_factory do
+        P1Tool::Application::Dispatcher.call_with_config(
+          {
+            task_id: 'task-register-encounter-1',
+            operation_kind: 'register_encounter',
+            payload: fixture_json('runtime', 'register_encounter_input.json').fetch('payload')
+          },
+          config: config
+        )
+      end
 
       assert_equal 'Encounter', result[:resource_type]
       assert_equal 'stub-patient-75061134485', result[:patient_reference_id]

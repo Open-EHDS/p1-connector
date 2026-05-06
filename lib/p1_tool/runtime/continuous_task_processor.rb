@@ -30,12 +30,15 @@ module P1Tool
       def call
         started_at = timestamp
         context = build_context
-        @audit_log.record_start(context, metadata: { source_path: @processing_path })
-        process_input(context, started_at)
-      rescue P1Tool::InputValidationError, JSON::ParserError => e
-        handle_invalid_input(context, started_at, e)
-      rescue StandardError => e
-        handle_failure(context, started_at, e)
+
+        P1Tool::Runtime::CurrentExecution.with(context:, audit_log: @audit_log) do
+          @audit_log.record_start(context, metadata: { source_path: @processing_path })
+          process_input(context, started_at)
+        rescue P1Tool::InputValidationError, JSON::ParserError => e
+          handle_invalid_input(current_context(context), started_at, e)
+        rescue StandardError => e
+          handle_failure(current_context(context), started_at, e)
+        end
       end
 
       private
@@ -79,10 +82,10 @@ module P1Tool
       end
 
       def context_from_input(context, input)
-        context.with(
+        update_current_context(context.with(
           task_id: input[:task_id] || input['task_id'],
           operation_kind: input[:operation_kind] || input['operation_kind']
-        )
+        ))
       end
 
       def handle_invalid_input(context, started_at, error)
@@ -223,6 +226,14 @@ module P1Tool
           exception_class: error.class.name,
           message: error.message
         }
+      end
+
+      def update_current_context(context)
+        P1Tool::Runtime::CurrentExecution.update_context(context)
+      end
+
+      def current_context(fallback)
+        P1Tool::Runtime::CurrentExecution.context || fallback
       end
 
       def timestamp = @clock.call.iso8601

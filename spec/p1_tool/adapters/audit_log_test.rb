@@ -95,6 +95,30 @@ describe P1Tool::Adapters::AuditLog do
     end
   end
 
+  describe '#record_event' do
+    let(:time_value) { '2026-04-30T10:00:03Z' }
+
+    it 'appends custom operational event entry' do
+      Dir.mktmpdir do |dir|
+        log_path = File.join(dir, 'audit.jsonl')
+        audit_log = audit_log_class.new(log_path, clock: -> { Time.iso8601(time_value) })
+
+        audit_log.record_event(
+          context,
+          event_type: 'p1_access_token_acquired',
+          result: 'success',
+          metadata: { http_status: 200 }
+        )
+
+        persisted_entry = JSON.parse(File.read(log_path))
+
+        assert_equal 'p1_access_token_acquired', persisted_entry.fetch('event_type')
+        assert_equal 'success', persisted_entry.fetch('result')
+        assert_equal({ 'http_status' => 200 }, persisted_entry.fetch('metadata'))
+      end
+    end
+  end
+
   describe 'append-only behavior' do
     let(:time_value) { '2026-04-30T10:00:00Z' }
 

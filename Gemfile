@@ -5,6 +5,8 @@ source 'https://rubygems.org'
 ruby '3.4.9'
 
 gem 'dry-schema'
+gem 'faraday'
+gem 'jwt'
 gem 'nokogiri'
 gem 'sidekiq'
 gem 'sidekiq-cron'

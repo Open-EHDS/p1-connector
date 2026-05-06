@@ -15,7 +15,11 @@ module P1Tool
           end
 
           def encounter_class(xml)
-            xml.send(:class) { xml.system(value: constants::ENCOUNTER_CLASS_SYSTEM); xml.code(value: data[:class_code]); display(xml, data[:class_name]) }
+            xml.class_ do
+              xml.system(value: constants::ENCOUNTER_CLASS_SYSTEM)
+              xml.code(value: data[:class_code])
+              display(xml, data[:class_name])
+            end
           end
 
           def subject(xml)

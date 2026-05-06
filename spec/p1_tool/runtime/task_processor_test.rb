@@ -27,7 +27,9 @@ describe P1Tool::Runtime::TaskProcessor do
       replacements: { '__AUDIT_LOG_PATH__' => audit_log_path }
     )
 
-    P1Tool::Core::ConfigurationLoader.load(config_path)
+    with_stubbed_pkcs12_validation do
+      P1Tool::Core::ConfigurationLoader.load(config_path)
+    end
   end
   let(:processor) do
     task_processor_class.new(
@@ -47,14 +49,14 @@ describe P1Tool::Runtime::TaskProcessor do
     it 'processes valid input end-to-end' do
       File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
-      result = processor.call
+      result = with_fake_p1_client_factory { processor.call }
 
       assert_equal 'success', result[:result_kind]
       assert_equal 'transport-1', result[:transport_id]
       assert_equal 'register-encounter-task-1', result[:task_id]
       assert_equal 'register_encounter', result[:operation_kind]
       assert_equal 'Encounter', result.dig(:details, :resource_type)
-      assert_equal 'stubbed', result.dig(:details, :patient_resolution, :status)
+      assert_equal 'found', result.dig(:details, :patient_resolution, :status)
       refute result[:details].key?(:xml)
 
       persisted_result = JSON.parse(File.read(output_path))
@@ -65,7 +67,15 @@ describe P1Tool::Runtime::TaskProcessor do
 
       audit_lines = File.readlines(audit_log_path, chomp: true).map { |line| JSON.parse(line) }
 
-      assert_equal(%w[execution_started execution_finished], audit_lines.map { |entry| entry.fetch('event_type') })
+      assert_equal(
+        %w[
+          execution_started
+          p1_patient_lookup_finished
+          p1_encounter_submitted
+          execution_finished
+        ],
+        audit_lines.map { |entry| entry.fetch('event_type') }
+      )
       assert_equal 'success', audit_lines.last.fetch('result')
     end
 
@@ -99,7 +109,7 @@ describe P1Tool::Runtime::TaskProcessor do
     it 'processes register encounter input without exposing XML in result details' do
       File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
-      result = processor.call
+      result = with_fake_p1_client_factory { processor.call }
 
       assert_equal 'success', result[:result_kind]
       assert_equal 'register_encounter', result[:operation_kind]
@@ -112,6 +122,27 @@ describe P1Tool::Runtime::TaskProcessor do
       assert_equal 'success', persisted_result.fetch('result_kind')
       assert_equal 'Encounter', persisted_result.fetch('details').fetch('resource_type')
       refute persisted_result.fetch('details').key?('xml')
+    end
+
+    it 'preserves task context in failure result after input validation succeeds' do
+      File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
+
+      result = with_singleton_stub(
+        P1Tool::Application::Dispatcher,
+        :call_with_config,
+        ->(_input, config:) { raise StandardError, 'boom' }
+      ) do
+        processor.call
+      end
+
+      assert_equal 'failure', result[:result_kind]
+      assert_equal 'register-encounter-task-1', result[:task_id]
+      assert_equal 'register_encounter', result[:operation_kind]
+
+      persisted_result = JSON.parse(File.read(output_path))
+
+      assert_equal 'register-encounter-task-1', persisted_result.fetch('task_id')
+      assert_equal 'register_encounter', persisted_result.fetch('operation_kind')
     end
   end
 end

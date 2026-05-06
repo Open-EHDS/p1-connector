@@ -39,13 +39,15 @@ describe P1Tool::Runtime::ContinuousRunner do
 
     with_singleton_stub(P1Tool::Runtime::ProcessingRecovery, :new, ->(_workspace) { recovery }) do
       with_singleton_stub(Sidekiq, :configure_embed, configure_embed) do
-        runner = runner_class.new(config_path:, stdout:)
-        runner.define_singleton_method(:install_signal_handlers) { |_embedded| nil }
-        runner.define_singleton_method(:sleep) { raise Interrupt }
+        with_stubbed_pkcs12_validation do
+          runner = runner_class.new(config_path:, stdout:)
+          runner.define_singleton_method(:install_signal_handlers) { |_embedded| nil }
+          runner.define_singleton_method(:sleep) { raise Interrupt }
 
-        runner.run
-      rescue Interrupt
-        nil
+          runner.run
+        rescue Interrupt
+          nil
+        end
       end
     end
 

@@ -6,6 +6,8 @@ paths:
   audit_log: __AUDIT_LOG_PATH__
 signature_service:
   url: http://localhost:8080
+p1:
+  environment: integration
 subject:
   oid: "1.2.616.1.113883.3.4424.1.1"
   identification_code: "1234567890"
@@ -15,9 +17,9 @@ subject:
   medical_chamber: "NIL"
 certificates:
   base_path: /certs
-  signing:
-    filename: signing.p12
-    password_env: SIGNING_CERT_PASSWORD
+  wss:
+    filename: wss.p12
+    password_env: WSS_CERT_PASSWORD
   tls:
     filename: tls.p12
     password_env: TLS_CERT_PASSWORD

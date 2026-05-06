@@ -29,6 +29,11 @@ describe P1Tool::Application::Builders::Encounter::XmlBuilder do
         document.at_xpath('//*[local-name()="profile"]')[:value]
       )
       assert_equal(
+        'urn:oid:2.16.840.1.113883.3.4424.11.1.34',
+        document.at_xpath('//*[local-name()="class"]/*[local-name()="system"]')[:value]
+      )
+      assert_equal '4', document.at_xpath('//*[local-name()="class"]/*[local-name()="code"]')[:value]
+      assert_equal(
         'Patient/stub-patient-75061134485',
         document.at_xpath('//*[local-name()="subject"]/*[local-name()="reference"]')[:value]
       )

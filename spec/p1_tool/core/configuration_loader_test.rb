@@ -13,11 +13,14 @@ describe P1Tool::Core::ConfigurationLoader do
           replacements: { '__AUDIT_LOG_PATH__' => '/logs/audit.jsonl' }
         )
 
-        config = P1Tool::Core::ConfigurationLoader.load(config_path)
+        config = with_stubbed_pkcs12_validation do
+          P1Tool::Core::ConfigurationLoader.load(config_path)
+        end
 
         assert_equal '/data/inbox', config.dig(:paths, :inbox)
         refute config.dig(:subject, :is_practice)
-        assert_equal 'SIGNING_CERT_PASSWORD', config.dig(:certificates, :signing, :password_env)
+        assert_equal 'WSS_CERT_PASSWORD', config.dig(:certificates, :wss, :password_env)
+        assert_equal 'integration', config.dig(:p1, :environment)
       end
     end
 
@@ -57,6 +60,8 @@ describe P1Tool::Core::ConfigurationLoader do
               url: <%= ENV['REDIS_URL'] || 'redis://127.0.0.1:6379/0' %>
             signature_service:
               url: <%= ENV['SIGNATURE_SERVICE_URL'] || 'http://127.0.0.1:8080' %>
+            p1:
+              environment: <%= ENV['P1_ENVIRONMENT'] || 'integration' %>
             subject:
               oid: "1.2.616.1.113883.3.4424.1.1"
               identification_code: "1234567890"
@@ -66,9 +71,9 @@ describe P1Tool::Core::ConfigurationLoader do
               medical_chamber: "NIL"
             certificates:
               base_path: <%= ENV['P1_CERTIFICATES_BASE_PATH'] || './tmp/certs' %>
-              signing:
-                filename: signing.p12
-                password_env: SIGNING_CERT_PASSWORD
+              wss:
+                filename: wss.p12
+                password_env: WSS_CERT_PASSWORD
               tls:
                 filename: tls.p12
                 password_env: TLS_CERT_PASSWORD
@@ -95,7 +100,9 @@ describe P1Tool::Core::ConfigurationLoader do
         ENV['P1_DATA_ROOT'] = './runtime/data'
         ENV['P1_LOGS_ROOT'] = './runtime/logs'
         ENV['REDIS_URL'] = 'redis://redis:6379/0'
-        config = P1Tool::Core::ConfigurationLoader.load(config_path)
+        config = with_stubbed_pkcs12_validation do
+          P1Tool::Core::ConfigurationLoader.load(config_path)
+        end
 
         assert_equal './runtime/data/inbox', config.dig(:paths, :inbox)
         assert_equal './runtime/data/results', config.dig(:paths, :results)
@@ -133,6 +140,8 @@ describe P1Tool::Core::ConfigurationLoader do
               url: redis://127.0.0.1:6379/0
             signature_service:
               url: http://127.0.0.1:8080
+            p1:
+              environment: integration
             subject:
               oid: "1.2.616.1.113883.3.4424.1.1"
               identification_code: "1234567890"
@@ -142,9 +151,9 @@ describe P1Tool::Core::ConfigurationLoader do
               medical_chamber: "NIL"
             certificates:
               base_path: ./tmp/certs
-              signing:
-                filename: signing.p12
-                password_env: SIGNING_CERT_PASSWORD
+              wss:
+                filename: wss.p12
+                password_env: WSS_CERT_PASSWORD
               tls:
                 filename: tls.p12
                 password_env: TLS_CERT_PASSWORD
@@ -158,7 +167,9 @@ describe P1Tool::Core::ConfigurationLoader do
         ENV['P1_DATA_ROOT'] = './runtime/data'
         ENV['P1_INBOX_PATH'] = '/custom/inbox'
 
-        config = P1Tool::Core::ConfigurationLoader.load(config_path)
+        config = with_stubbed_pkcs12_validation do
+          P1Tool::Core::ConfigurationLoader.load(config_path)
+        end
 
         assert_equal '/custom/inbox', config.dig(:paths, :inbox)
         assert_equal './runtime/data/processing', config.dig(:paths, :processing)
@@ -186,6 +197,8 @@ describe P1Tool::Core::ConfigurationLoader do
               url: <%= ENV.fetch('REDIS_URL') %>
             signature_service:
               url: http://127.0.0.1:8080
+            p1:
+              environment: integration
             subject:
               oid: "1.2.616.1.113883.3.4424.1.1"
               identification_code: "1234567890"
@@ -195,9 +208,9 @@ describe P1Tool::Core::ConfigurationLoader do
               medical_chamber: "NIL"
             certificates:
               base_path: ./tmp/certs
-              signing:
-                filename: signing.p12
-                password_env: SIGNING_CERT_PASSWORD
+              wss:
+                filename: wss.p12
+                password_env: WSS_CERT_PASSWORD
               tls:
                 filename: tls.p12
                 password_env: TLS_CERT_PASSWORD
@@ -214,6 +227,37 @@ describe P1Tool::Core::ConfigurationLoader do
         assert_match("key not found: \"REDIS_URL\"", error.message)
       ensure
         ENV['REDIS_URL'] = original_redis_url
+      end
+    end
+
+    it 'raises when certificate password env is missing' do
+      Dir.mktmpdir do |dir|
+        config_path = File.join(dir, 'config.yml')
+        write_config_fixture(
+          config_path,
+          fixture_name: 'runtime_config.yml',
+          replacements: { '__AUDIT_LOG_PATH__' => '/logs/audit.jsonl' }
+        )
+
+        original_wss = ENV.fetch('WSS_CERT_PASSWORD', nil)
+        original_tls = ENV.fetch('TLS_CERT_PASSWORD', nil)
+        ENV.delete('WSS_CERT_PASSWORD')
+        ENV['TLS_CERT_PASSWORD'] = 'secret'
+
+        error = assert_raises(P1Tool::ConfigurationError) do
+          with_singleton_stub(
+            P1Tool::Gateways::P1::Pkcs12Bundle,
+            :load,
+            ->(path:, password:) { Struct.new(:certificate, :key, :ca_certs).new(nil, nil, []) }
+          ) do
+            P1Tool::Core::ConfigurationLoader.load(config_path)
+          end
+        end
+
+        assert_equal ['environment variable WSS_CERT_PASSWORD is missing'], error.details.dig(:certificates, :wss, :password_env)
+      ensure
+        ENV['WSS_CERT_PASSWORD'] = original_wss
+        ENV['TLS_CERT_PASSWORD'] = original_tls
       end
     end
   end

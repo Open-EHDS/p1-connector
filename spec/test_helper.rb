@@ -19,6 +19,7 @@ module RuntimeConfigHelper
       paths: runtime_paths_for(root_dir, audit_log_path:),
       redis: { url: redis_url },
       signature_service: { url: 'http://localhost:8080' },
+      p1: { environment: 'integration' },
       subject: runtime_subject_config,
       certificates: runtime_certificates_config
     }
@@ -42,16 +43,85 @@ module RuntimeConfigHelper
       department_code_v: '1234',
       department_code_vii: '1234567',
       is_practice: false,
-      medical_chamber: 'NIL'
+      medical_chamber: 'NIL',
+      name: 'Test Subject',
+      regon: '12345678900000',
+      address: '00-000 Test, ul. Testowa 1 / 1',
+      phone: '123456789'
     }
   end
 
   def runtime_certificates_config
     {
       base_path: '/certs',
-      signing: { filename: 'signing.p12', password_env: 'SIGNING_CERT_PASSWORD' },
+      wss: { filename: 'wss.p12', password_env: 'WSS_CERT_PASSWORD' },
       tls: { filename: 'tls.p12', password_env: 'TLS_CERT_PASSWORD' }
     }
+  end
+
+  def build_fake_p1_client(encounter_reference_id: 'stub-encounter-1')
+    Class.new do
+      define_method(:initialize) do |encounter_reference_id:|
+        @encounter_reference_id = encounter_reference_id
+      end
+
+      define_method(:find_patient) do |payload:|
+        pesel = payload.dig(:patient, :pesel)
+        {
+          status: 200,
+          body: {
+            'resourceType' => 'Bundle',
+            'total' => 1,
+            'entry' => [{ 'resource' => { 'id' => "stub-patient-#{pesel}" } }]
+          }
+        }
+      end
+
+      define_method(:create_resource) do |resource_type:, xml:|
+        if resource_type == 'Patient'
+          { status: 201, reference_id: 'stub-created-patient' }
+        else
+          { status: 201, reference_id: @encounter_reference_id, version_id: '1' }
+        end
+      end
+
+      define_method(:update_resource) do |resource_type:, reference_id:, xml:|
+        { status: 200, reference_id:, version_id: '2' }
+      end
+    end.new(encounter_reference_id:)
+  end
+
+  def with_fake_p1_client_factory(client = build_fake_p1_client, &block)
+    with_singleton_stub(
+      P1Tool::Gateways::P1::ClientFactory,
+      :build,
+      ->(config:, doctor:) { client },
+      &block
+    )
+  end
+
+  def with_stubbed_pkcs12_validation(password_envs: { 'WSS_CERT_PASSWORD' => 'secret', 'TLS_CERT_PASSWORD' => 'secret' })
+    original = {}
+    password_envs.each do |key, value|
+      original[key] = ENV.key?(key) ? ENV[key] : :__missing__
+      ENV[key] = value
+    end
+
+    with_singleton_stub(
+      P1Tool::Gateways::P1::Pkcs12Bundle,
+      :load,
+      ->(path:, password:) { Struct.new(:certificate, :key, :ca_certs).new(nil, nil, []) }
+    ) do
+      yield
+    end
+  ensure
+    password_envs.each_key do |key|
+      if original[key] == :__missing__
+        ENV.delete(key)
+      else
+        ENV[key] = original[key]
+      end
+    end
   end
 end
 

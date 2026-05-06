@@ -43,9 +43,11 @@ describe 'continuous mode with compose redis' do
 
       File.write(inbox_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
 
-      P1Tool::Jobs::InboxScanJob.perform_async
+      with_fake_p1_client_factory do
+        P1Tool::Jobs::InboxScanJob.perform_async
 
-      wait_until(timeout: 20) { File.exist?(result_path) && File.exist?(done_path) }
+        wait_until(timeout: 20) { File.exist?(result_path) && File.exist?(done_path) }
+      end
 
       persisted_result = JSON.parse(File.read(result_path))
 

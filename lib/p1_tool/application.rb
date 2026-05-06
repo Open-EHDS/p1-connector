@@ -1,0 +1,16 @@
+# frozen_string_literal: true
+
+require_relative 'application/builders/encounter/constants'
+require_relative 'application/builders/patient/xml_builder'
+require_relative 'application/contracts/register_encounter/payload_schema'
+require_relative 'application/contracts/register_encounter/validation_helpers'
+require_relative 'application/contracts/register_encounter/payload_validator'
+require_relative 'application/builders/encounter/data_builder'
+require_relative 'application/builders/encounter/xml_section_helpers'
+require_relative 'application/builders/encounter/xml_builder'
+require_relative 'application/integrations/p1/patient/find_or_create'
+require_relative 'application/integrations/p1/encounter/submit'
+require_relative 'application/operations/register_encounter'
+require_relative 'application/dispatcher'
+require_relative 'application/cli'
+require_relative 'application/live_smoke_runner'

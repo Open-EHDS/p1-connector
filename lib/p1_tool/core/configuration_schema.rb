@@ -22,6 +22,11 @@ module P1Tool
         required(:url).filled(:string)
       end
 
+      required(:p1).hash do
+        required(:environment).filled(:string, included_in?: %w[integration production])
+        optional(:request_timeout_seconds).filled(:integer, gt?: 0)
+      end
+
       required(:subject).hash do
         required(:oid).filled(:string)
         required(:identification_code).filled(:string)
@@ -29,12 +34,16 @@ module P1Tool
         required(:department_code_vii).filled(:string)
         required(:is_practice).filled(:bool)
         required(:medical_chamber).filled(:string)
+        optional(:name).filled(:string)
+        optional(:regon).filled(:string)
+        optional(:address).filled(:string)
+        optional(:phone).filled(:string)
       end
 
       required(:certificates).hash do
         required(:base_path).filled(:string)
 
-        required(:signing).hash do
+        required(:wss).hash do
           required(:filename).filled(:string)
           required(:password_env).filled(:string)
         end
