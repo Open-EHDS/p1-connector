@@ -23,6 +23,23 @@ describe P1Tool::Application::Dispatcher do
       refute result.key?(:xml)
     end
 
+    it 'invokes register_procedure operation' do
+      result = with_fake_p1_client_factory do
+        P1Tool::Application::Dispatcher.call_with_config(
+          {
+            task_id: 'task-register-procedure-1',
+            operation_kind: 'register_procedure',
+            payload: fixture_json('runtime', 'register_procedure_input.json').fetch('payload')
+          },
+          config: config
+        )
+      end
+
+      assert_equal 'Procedure', result[:resource_type]
+      assert_equal 'enc-123', result[:encounter_reference_id]
+      assert_equal 'stub-patient-75061134485', result[:patient_reference_id]
+    end
+
     it 'rejects unsupported operation_kind' do
       error = assert_raises(P1Tool::InputValidationError) do
         P1Tool::Application::Dispatcher.call(
@@ -32,7 +49,7 @@ describe P1Tool::Application::Dispatcher do
         )
       end
 
-      assert_equal ['must be one of: register_encounter'], error.details[:operation_kind]
+      assert_equal ['must be one of: register_encounter, register_procedure'], error.details[:operation_kind]
     end
   end
 end

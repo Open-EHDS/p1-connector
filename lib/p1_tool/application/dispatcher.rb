@@ -4,7 +4,8 @@ module P1Tool
   module Application
     class Dispatcher
       OPERATIONS = {
-        'register_encounter' => Operations::RegisterEncounter
+        'register_encounter' => Operations::RegisterEncounter,
+        'register_procedure' => Operations::RegisterProcedure
       }.freeze
 
       def self.call(input)

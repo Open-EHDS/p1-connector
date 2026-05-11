@@ -32,14 +32,18 @@ module P1Tool
         output_path = File.join(run_dir, 'result.json')
         debug_xml_dir = File.join(run_dir, 'debug_xml')
 
-        exit_code =
-          with_debug_xml(debug_xml_dir) do
-            CLI.start(
-              ['run-once', '--config', options[:config_path], '--input', options[:input_path], '--output', output_path],
-              stdout: @stdout,
-              stderr: @stderr
-            )
-          end
+        exit_code = run_once(options[:config_path], options[:input_path], output_path, debug_xml_dir)
+
+        encounter_result_payload = read_json_file(output_path)
+        procedure_step = run_procedure_step(
+          options:,
+          run_dir:,
+          debug_xml_dir:,
+          encounter_result_payload:,
+          encounter_exit_code: exit_code
+        )
+
+        exit_code = procedure_step[:exit_code] if procedure_step[:ran]
 
         print_summary(
           config:,
@@ -49,7 +53,9 @@ module P1Tool
           run_dir:,
           debug_xml_dir:,
           exit_code:,
-          audit_tail: options[:audit_tail]
+          audit_tail: options[:audit_tail],
+          encounter_result_payload:,
+          procedure_step:
         )
 
         exit_code
@@ -70,8 +76,11 @@ module P1Tool
           audit_tail: DEFAULT_AUDIT_TAIL
         }
         parser = OptionParser.new do |opts|
-          opts.banner = 'Usage: p1-live-smoke --input PATH [--config PATH] [--output-dir PATH] [--audit-tail N] [--clean]'
+          opts.banner = 'Usage: p1-live-smoke --input PATH [--procedure-input PATH] [--config PATH] [--output-dir PATH] [--audit-tail N] [--clean]'
           opts.on('--input PATH', 'Path to the input JSON file') { |path| options[:input_path] = path }
+          opts.on('--procedure-input PATH', 'Optional path to register_procedure input JSON file') do |path|
+            options[:procedure_input_path] = path
+          end
           opts.on('--config PATH', 'Path to the YAML config file') { |path| options[:config_path] = path }
           opts.on('--output-dir PATH', 'Directory for smoke test artifacts') { |path| options[:output_dir] = path }
           opts.on('--audit-tail N', Integer, 'Number of audit entries to print (default: 10)') do |value|
@@ -120,10 +129,61 @@ module P1Tool
         end
       end
 
-      def print_summary(config:, config_path:, input_path:, output_path:, run_dir:, debug_xml_dir:, exit_code:, audit_tail:)
-        result_payload = read_json_file(output_path)
-        transport_id = result_payload&.fetch('transport_id', nil)
-        audit_entries = load_audit_entries(config.dig(:paths, :audit_log), transport_id:, limit: audit_tail)
+      def run_once(config_path, input_path, output_path, debug_xml_dir)
+        with_debug_xml(debug_xml_dir) do
+          CLI.start(
+            ['run-once', '--config', config_path, '--input', input_path, '--output', output_path],
+            stdout: @stdout,
+            stderr: @stderr
+          )
+        end
+      end
+
+      def run_procedure_step(options:, run_dir:, debug_xml_dir:, encounter_result_payload:, encounter_exit_code:)
+        return { ran: false } unless options[:procedure_input_path]
+        return { ran: false, skipped: true } unless encounter_exit_code.zero?
+
+        encounter_reference_id = encounter_result_payload&.dig('details', 'submission', 'reference_id')
+        raise "Encounter smoke did not produce submission.reference_id required for procedure step" if blank?(encounter_reference_id)
+
+        procedure_input_payload = read_json_file(options[:procedure_input_path])
+        raise "Procedure input file is invalid JSON: #{options[:procedure_input_path]}" if procedure_input_payload.nil?
+
+        resolved_input_payload = build_procedure_input(procedure_input_payload, encounter_reference_id)
+        resolved_input_path = File.join(run_dir, 'procedure-input.resolved.json')
+        procedure_output_path = File.join(run_dir, 'procedure-result.json')
+
+        write_json_file(resolved_input_path, resolved_input_payload)
+        exit_code = run_once(options[:config_path], resolved_input_path, procedure_output_path, debug_xml_dir)
+
+        {
+          ran: true,
+          exit_code:,
+          input_path: options[:procedure_input_path],
+          resolved_input_path:,
+          output_path: procedure_output_path,
+          result_payload: read_json_file(procedure_output_path)
+        }
+      end
+
+      def build_procedure_input(input_payload, encounter_reference_id)
+        payload = deep_copy(input_payload)
+        payload['payload'] ||= {}
+        payload['payload']['encounter'] ||= {}
+        payload['payload']['encounter']['resource_id'] = encounter_reference_id
+        payload
+      end
+
+      def deep_copy(value)
+        JSON.parse(JSON.generate(value))
+      end
+
+      def write_json_file(path, payload)
+        File.write(path, JSON.pretty_generate(payload) + "\n")
+      end
+
+      def print_summary(config:, config_path:, input_path:, output_path:, run_dir:, debug_xml_dir:, exit_code:, audit_tail:, encounter_result_payload:, procedure_step:)
+        encounter_transport_id = encounter_result_payload&.fetch('transport_id', nil)
 
         print_lines(
           'Live smoke finished',
@@ -134,13 +194,51 @@ module P1Tool
           "Result path: #{output_path}",
           "Debug XML dir: #{debug_xml_dir}",
           "Audit log path: #{File.expand_path(config.dig(:paths, :audit_log))}",
-          "Transport ID: #{transport_id || 'n/a'}",
-          "Result kind: #{result_payload&.fetch('result_kind', nil) || 'n/a'}"
+          "Transport ID: #{encounter_transport_id || 'n/a'}",
+          "Result kind: #{encounter_result_payload&.fetch('result_kind', nil) || 'n/a'}"
         )
 
+        print_step_audit(
+          title: 'Recent audit events:',
+          path: config.dig(:paths, :audit_log),
+          transport_id: encounter_transport_id,
+          limit: audit_tail
+        )
+
+        print_procedure_step_summary(config:, procedure_step:, audit_tail:)
+      end
+
+      def print_procedure_step_summary(config:, procedure_step:, audit_tail:)
+        if procedure_step[:skipped]
+          @stdout.puts('Procedure step: skipped because encounter step did not finish with success')
+          return
+        end
+        return unless procedure_step[:ran]
+
+        result_payload = procedure_step[:result_payload]
+        transport_id = result_payload&.fetch('transport_id', nil)
+
+        print_lines(
+          "Procedure input path: #{File.expand_path(procedure_step[:input_path])}",
+          "Procedure resolved input path: #{procedure_step[:resolved_input_path]}",
+          "Procedure result path: #{procedure_step[:output_path]}",
+          "Procedure transport ID: #{transport_id || 'n/a'}",
+          "Procedure result kind: #{result_payload&.fetch('result_kind', nil) || 'n/a'}"
+        )
+
+        print_step_audit(
+          title: 'Recent procedure audit events:',
+          path: config.dig(:paths, :audit_log),
+          transport_id:,
+          limit: audit_tail
+        )
+      end
+
+      def print_step_audit(title:, path:, transport_id:, limit:)
+        audit_entries = load_audit_entries(path, transport_id:, limit:)
         return if audit_entries.empty?
 
-        @stdout.puts('Recent audit events:')
+        @stdout.puts(title)
         audit_entries.each do |entry|
           @stdout.puts(
             "- #{entry.fetch('timestamp')} #{entry.fetch('event_type')} result=#{entry.fetch('result', 'n/a')}"
@@ -168,6 +266,10 @@ module P1Tool
         end
         entries = entries.select { |entry| entry['transport_id'] == transport_id } if transport_id
         entries.last(limit)
+      end
+
+      def blank?(value)
+        value.nil? || (value.respond_to?(:empty?) && value.empty?)
       end
     end
   end

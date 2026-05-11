@@ -1,0 +1,160 @@
+system;code;name
+79;left;Lewa strona ciała
+79;right;Prawa strona ciała
+79;both;Obie strony ciała
+23;001.000.000;Głowa
+23;001.001.000;Mózgoczaszka
+23;001.001.001;Mózg i pozostałe struktury przedniej jamy czaszki (z uwzględnieniem wszystkich opcji badania strukturalnego TK i MR/DWI;DTI)
+23;001.001.002;Mózg- badanie perfuzji mózgowej
+23;001.001.003;Mózg-spektroskopia rezonansu magnetycznego
+23;001.001.004;Mózg -badanie czynnościowe rezonansu magnetycznego
+23;001.001.005;Przysadka mózgowa
+23;001.001.006;Móżdżek i pozostałe struktury tylnej jamy czaszki ( z uwzględnieniem wszystkich opcji badania strukturalnego TK i MR/DWI;DTI)
+23;001.001.007;Móżdżek –badanie perfuzji w obrębie móżdżku
+23;001.001.008;Móżdżek-spektroskopia MR
+23;001.002.000;Rdzeń kręgowy –badanie MR
+23;001.003.000;Twarzoczaszka i podstawa czaszki
+23;001.003.001;Oczodoły
+23;001.003.002;Zatoki przynosowe
+23;001.003.003;Stawy skroniowo-żuchwowe
+23;001.003.004;Szczęka i żuchwa (badanie stomatologiczne – TK)
+23;001.003.005;Piramida kości skroniowej (uszy)
+23;001.003.006;Podstawa czaszki
+23;002.000.000;Szyja
+23;002.001.000;Krtań
+23;002.002.000;Gardło
+23;003.000.000;Klatka piersiowa
+23;003.001.000;Tchawica/ oskrzela
+23;003.002.000;Płuca
+23;003.003.000;Śródpiersie
+23;003.004.000;Sutek (mammografia-MR)
+23;003.005.000;Ściana klatki piersiowej
+23;003.006.000;Przełyk
+23;004.000.000;Jama brzuszna
+23;004.001.000;Jama brzuszna
+23;004.001.001;Wątroba
+23;004.001.002;Drogi żółciowe i pęcherzyk żółciowy oraz przewody trzustkowe (cholangiopankreatografia rezonansu magnetycznego )
+23;004.001.003;Śledziona
+23;004.001.004;Żołądek i dwunastnica
+23;004.001.005;Trzustka
+23;004.001.006;Nadnercza
+23;004.001.007;Nerki
+23;004.001.008;Jelito cienkie i jelito grube, w tym wirtualna kolonoskopia TK u pacjentów, u których warunki anatomiczne uniemożliwiają wykonanie kolonoskopii tradycyjnej
+23;004.002.000;Miednica
+23;004.002.001;Narząd rodny
+23;004.002.002;Gruczoł krokowy
+23;004.002.003;Pęcherz moczowy
+23;004.002.004;Odbytnica
+23;005.000.000;Układ mięśniowo-szkieletowy i nerwowy
+23;005.001.000;Kręgosłup
+23;005.001.001;Kręgosłup szyjny
+23;005.001.002;Kręgosłup piersiowy
+23;005.001.003;Kręgosłup lędźwiowo-krzyżowy
+23;005.002.000;Miednica
+23;005.002.001;Kości miednicy
+23;005.002.002;Stawy krzyżowo-biodrowe
+23;005.002.003;Spojenie łonowe
+23;005.003.000;Kończyna górna
+23;005.003.001;Staw mostkowo-obojczykowy
+23;005.003.002;Łopatka
+23;005.003.003;Bark (staw ramienny i barkowo-obojczykowy)
+23;005.003.004;Bark - splot nerwowy barkowy/ramienny
+23;005.003.005;Ramię
+23;005.003.006;Staw łokciowy
+23;005.003.007;Przedramię
+23;005.003.008;Nadgarstek
+23;005.003.009;Ręka
+23;005.004.000;Kończyna dolna
+23;005.004.001;Staw biodrowy
+23;005.004.002;Udo
+23;005.004.003;Staw kolanowy
+23;005.004.004;Podudzie
+23;005.004.005;Staw skokowy
+23;005.004.006;Stopa
+23;006.000.000;Układ sercowo-naczyniowy
+23;006.001.000;Serce
+23;006.001.001;Tętnice wieńcowe
+23;006.001.002;Serce - badanie czynnościowe i morfologiczne tomografii komputerowej
+23;006.001.003;Serce- badanie czynnościowe i morfologiczne rezonansu magnetycznego
+23;006.002.000;Aorta
+23;006.002.001;Piersiowa
+23;006.002.002;Brzuszna
+23;006.002.003;Tętnice trzewne
+23;006.002.004;Tętnice nerkowe
+23;006.003.000;Tętnice dogłowowe (szyjne i kręgowe)
+23;006.004.000;Tętnice miednicy
+23;006.005.000;Żyły szyjne
+23;006.006.000;Tętnice wewnątrzczaszkowe
+23;006.007.000;Zatoki żylne mózgowia
+23;006.008.000;Tętnice kończyn górnych
+23;006.009.000;Tętnice kończyn dolnych
+23;006.010.000;Żyły kończyn górnych
+23;006.011.000;Żyły kończyn dolnych
+23;006.012.000;Żyły górnego otworu klatki piersiowej
+23;006.013.000;Żyła główna dolna
+23;006.014.000;Żyły miednicy
+123;11;górne prawe pierwsze siekacze stałe
+123;12;górne prawe drugie siekacze stałe 
+123;13;górne prawe kły stałe
+123;14;górne prawe pierwsze przedtrzonowce stałe
+123;15;górne  prawe drugie przedtrzonowce stałe 
+123;16;górne prawe pierwsze trzonowce stałe 
+123;17;górne prawe drugie trzonowce stałe 
+123;18;górne prawe trzecie trzonowce stałe
+123;21;górne lewe pierwsze siekacze stałe
+123;22;górne lewe drugie siekacze stałe 
+123;23;górne lewe kły stałe 
+123;24;górne lewe pierwsze przedtrzonowce stałe
+123;25;górne lewe drugie przedtrzonowce stałe
+123;26;górne lewe pierwsze trzonowce stałe 
+123;27;górne lewe drugie trzonowce stałe 
+123;28;górne lewe trzecie trzonowce stałe 
+123;31;dolne lewe pierwsze siekacze stałe 
+123;32;dolne lewe drugie siekacze stałe
+123;33;dolne lewe kły stałe
+123;34;dolne lewe pierwsze przedtrzonowce stałe
+123;35;dolne lewe drugie przedtrzonowce stałe 
+123;36;dolne lewe pierwsze trzonowce stałe
+123;37;dolne lewe drugie trzonowce stałe 
+123;38;dolne lewe trzecie trzonowce stałe 
+123;41;dolne prawe pierwsze siekacze stałe 
+123;42;dolne prawe drugie siekacze stałe 
+123;43;dolne prawe kły stałe 
+123;44;dolne prawe pierwsze przedtrzonowce stałe
+123;45;dolne prawe drugie przedtrzonowce stałe 
+123;46;dolne prawe pierwsze trzonowce stałe 
+123;47;dolne prawe drugie trzonowce stałe 
+123;48;dolne prawe trzecie trzonowce stałe
+123;51;górne prawe pierwsze siekacze mleczne
+123;52;górne prawe drugie siekacze mleczne 
+123;53;górne prawe kły mleczne 
+123;54;górne prawe pierwsze trzonowce mleczne
+123;55;górne prawe drugie trzonowce mleczne
+123;61;górne lewe pierwsze siekacze mleczne 
+123;62;górne lewe drugie siekacze mleczne 
+123;63;górne lewe kły mleczne 
+123;64;górne lewe pierwsze trzonowce mleczne
+123;65;górne lewe drugie trzonowce mleczne
+123;71;dolne lewe pierwsze siekacze mleczne 
+123;72;dolne lewe drugie siekacze mleczne
+123;73;dolne lewe kły mleczne
+123;74;dolne lewe pierwsze trzonowce mleczne
+123;75;dolne lewe drugie trzonowce mleczne
+123;81;dolne prawe pierwsze siekacze mleczne 
+123;82;dolne prawe drugie siekacze mleczne
+123;83;dolne prawe kły mleczne
+123;84;dolne prawe pierwsze trzonowce mleczne 
+123;85;dolne prawe drugie trzonowce mleczne
+124;00;całość jamy ustnej
+124;01;obszar szczęki
+124;02;obszar żuchwy
+124;10;górna prawa ćwiartka
+124;20;górna lewa ćwiartka
+124;30;dolna lewa ćwiartka
+124;40;dolna prawa ćwiartka
+124;03;górny prawy sekstant
+124;04;górny przedni sekstant
+124;05;górny lewy sekstant
+124;06;dolny lewy sekstant
+124;07;dolny przedni sekstant
+124;08;dolny prawy sekstant

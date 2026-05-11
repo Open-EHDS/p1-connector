@@ -5,20 +5,12 @@ module P1Tool
     module Builders
       module Encounter
         class Constants
-          DOCTOR_NPWZ_IDENTIFICATION_SYSTEM = '2.16.840.1.113883.3.4424.1.6.2'
-          PATIENT_PESEL_IDENTIFICATION_SYSTEM = '2.16.840.1.113883.3.4424.1.1.616'
-          DOCTOR_PROFESSION_SYSTEM = 'urn:oid:2.16.840.1.113883.3.4424.11.1.80'
+          include P1Tool::Application::Builders::SharedConstants
+
           PROFILE = 'https://ezdrowie.gov.pl/fhir/StructureDefinition/PLMedicalEvent'
-          SECURITY_SYSTEM = 'urn:oid:2.16.840.1.113883.3.4424.11.1.83'
           ENCOUNTER_CLASS_SYSTEM = 'urn:oid:2.16.840.1.113883.3.4424.11.1.34'
-          PRACTICE_SYSTEM_PREFIX = 'urn:oid:2.16.840.1.113883.3.4424.2.4.'
-          ENTITY_SYSTEM = 'urn:oid:2.16.840.1.113883.3.4424.2.3.1'
-          ENTITY_LOCATION_UNIT_SYSTEM = 'urn:oid:2.16.840.1.113883.3.4424.2.3.2'
-          ENTITY_LOCATION_CELL_SYSTEM = 'urn:oid:2.16.840.1.113883.3.4424.2.3.3'
-          PL_FUNCTION_EXTENSION = 'https://ezdrowie.gov.pl/fhir/StructureDefinition/PLFunction'
           PL_PAYOR_REFERENCE_EXTENSION = 'https://ezdrowie.gov.pl/fhir/StructureDefinition/PLPayorReference'
           DEFAULT_STATUS = 'finished'
-          DEFAULT_SECURITY_CODE = 'N'
 
           PROFESSION_NUMBERS = {
             'LEK' => '11',
@@ -50,7 +42,7 @@ module P1Tool
             end
 
             def patient_pesel_system
-              "urn:oid:#{PATIENT_PESEL_IDENTIFICATION_SYSTEM}"
+              P1Tool::Application::Builders::SharedConstants.patient_pesel_system
             end
           end
         end

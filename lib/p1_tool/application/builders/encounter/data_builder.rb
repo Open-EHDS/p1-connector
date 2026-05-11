@@ -7,6 +7,8 @@ module P1Tool
     module Builders
       module Encounter
         class DataBuilder
+          include P1Tool::Application::Builders::SharedDataBuilderSupport
+
           def initialize(payload:, subject:, constants: Constants, id_generator: -> { SecureRandom.uuid })
             @payload = payload
             @subject = subject
@@ -31,7 +33,7 @@ module P1Tool
               class_code: encounter[:class_code] || default_class.fetch(:code),
               class_name: encounter[:class_name] || default_class.fetch(:display),
               patient_pesel: patient.fetch(:pesel),
-              patient_name: [patient[:first_name], patient[:last_name]].join(' '),
+              patient_name: patient_name(patient),
               doctor_name: doctor.fetch(:name),
               doctor_identifier_system: doctor_identifier_system(doctor),
               doctor_identifier_value: doctor_identifier_value(doctor),
@@ -56,49 +58,6 @@ module P1Tool
             return payer unless payer.nil?
 
             { identifier_system: constants.patient_pesel_system, identifier_value: payload.dig(:patient, :pesel) }
-          end
-
-          def doctor_identifier_system(doctor)
-            base = blank?(doctor[:npwz]) ? constants::PATIENT_PESEL_IDENTIFICATION_SYSTEM : constants::DOCTOR_NPWZ_IDENTIFICATION_SYSTEM
-            "urn:oid:#{base}"
-          end
-
-          def doctor_identifier_value(doctor)
-            doctor[:npwz] || doctor[:pesel]
-          end
-
-          def subject_provider_system
-            return "#{constants::PRACTICE_SYSTEM_PREFIX}#{subject.fetch(:medical_chamber)}" if subject.fetch(:is_practice)
-
-            constants::ENTITY_SYSTEM
-          end
-
-          def subject_location_system
-            return "#{subject_provider_system}.1" if subject.fetch(:is_practice)
-            return constants::ENTITY_LOCATION_CELL_SYSTEM if present?(subject[:department_code_vii])
-
-            constants::ENTITY_LOCATION_UNIT_SYSTEM
-          end
-
-          def subject_location_value
-            return subject.fetch(:identification_code) if subject.fetch(:is_practice)
-
-            "#{subject.fetch(:identification_code)}-#{subject_department_code}"
-          end
-
-          def subject_department_code
-            department_code_vii = subject[:department_code_vii]
-            return department_code_vii.strip if present?(department_code_vii)
-
-            subject[:department_code_v]&.strip
-          end
-
-          def blank?(value)
-            value.nil? || (value.respond_to?(:empty?) && value.empty?)
-          end
-
-          def present?(value)
-            !blank?(value)
           end
         end
       end
