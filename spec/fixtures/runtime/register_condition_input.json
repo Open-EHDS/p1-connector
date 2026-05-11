@@ -1,0 +1,25 @@
+{
+  "task_id": "register-condition-task-1",
+  "operation_kind": "register_condition",
+  "payload": {
+    "patient": {
+      "pesel": "75061134485",
+      "first_name": "Dorota",
+      "last_name": "Kalandyk"
+    },
+    "doctor": {
+      "npwz": "5691489",
+      "profession_code": "LEK",
+      "name": "Adam739 Leczniczy"
+    },
+    "encounter": {
+      "resource_id": "enc-123"
+    },
+    "condition": {
+      "icd_10_code": "K02",
+      "icd_10_name": "Prochnica zebow",
+      "element_code": "85",
+      "recorded_date": "2021-09-28T12:30:00+02:00"
+    }
+  }
+}

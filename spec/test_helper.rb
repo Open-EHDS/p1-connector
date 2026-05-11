@@ -59,11 +59,16 @@ module RuntimeConfigHelper
     }
   end
 
-  def build_fake_p1_client(encounter_reference_id: 'stub-encounter-1', procedure_reference_id: 'stub-procedure-1')
+  def build_fake_p1_client(
+    encounter_reference_id: 'stub-encounter-1',
+    procedure_reference_id: 'stub-procedure-1',
+    condition_reference_id: 'stub-condition-1'
+  )
     Class.new do
-      define_method(:initialize) do |encounter_reference_id:, procedure_reference_id:|
+      define_method(:initialize) do |encounter_reference_id:, procedure_reference_id:, condition_reference_id:|
         @encounter_reference_id = encounter_reference_id
         @procedure_reference_id = procedure_reference_id
+        @condition_reference_id = condition_reference_id
       end
 
       define_method(:find_patient) do |payload:|
@@ -84,6 +89,8 @@ module RuntimeConfigHelper
           { status: 201, reference_id: 'stub-created-patient' }
         when 'Procedure'
           { status: 201, reference_id: @procedure_reference_id, version_id: '1' }
+        when 'Condition'
+          { status: 201, reference_id: @condition_reference_id, version_id: '1' }
         else
           { status: 201, reference_id: @encounter_reference_id, version_id: '1' }
         end
@@ -92,7 +99,7 @@ module RuntimeConfigHelper
       define_method(:update_resource) do |resource_type:, reference_id:, xml:|
         { status: 200, reference_id:, version_id: '2' }
       end
-    end.new(encounter_reference_id:, procedure_reference_id:)
+    end.new(encounter_reference_id:, procedure_reference_id:, condition_reference_id:)
   end
 
   def with_fake_p1_client_factory(client = build_fake_p1_client, &block)

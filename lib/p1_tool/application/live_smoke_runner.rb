@@ -42,8 +42,15 @@ module P1Tool
           encounter_result_payload:,
           encounter_exit_code: exit_code
         )
+        condition_step = run_condition_step(
+          options:,
+          run_dir:,
+          debug_xml_dir:,
+          encounter_result_payload:,
+          encounter_exit_code: exit_code
+        )
 
-        exit_code = procedure_step[:exit_code] if procedure_step[:ran]
+        exit_code = overall_exit_code(exit_code, procedure_step, condition_step)
 
         print_summary(
           config:,
@@ -55,7 +62,8 @@ module P1Tool
           exit_code:,
           audit_tail: options[:audit_tail],
           encounter_result_payload:,
-          procedure_step:
+          procedure_step:,
+          condition_step:
         )
 
         exit_code
@@ -76,10 +84,13 @@ module P1Tool
           audit_tail: DEFAULT_AUDIT_TAIL
         }
         parser = OptionParser.new do |opts|
-          opts.banner = 'Usage: p1-live-smoke --input PATH [--procedure-input PATH] [--config PATH] [--output-dir PATH] [--audit-tail N] [--clean]'
+          opts.banner = 'Usage: p1-live-smoke --input PATH [--procedure-input PATH] [--condition-input PATH] [--config PATH] [--output-dir PATH] [--audit-tail N] [--clean]'
           opts.on('--input PATH', 'Path to the input JSON file') { |path| options[:input_path] = path }
           opts.on('--procedure-input PATH', 'Optional path to register_procedure input JSON file') do |path|
             options[:procedure_input_path] = path
+          end
+          opts.on('--condition-input PATH', 'Optional path to register_condition input JSON file') do |path|
+            options[:condition_input_path] = path
           end
           opts.on('--config PATH', 'Path to the YAML config file') { |path| options[:config_path] = path }
           opts.on('--output-dir PATH', 'Directory for smoke test artifacts') { |path| options[:output_dir] = path }
@@ -140,38 +151,73 @@ module P1Tool
       end
 
       def run_procedure_step(options:, run_dir:, debug_xml_dir:, encounter_result_payload:, encounter_exit_code:)
-        return { ran: false } unless options[:procedure_input_path]
+        run_resource_step(
+          enabled_path: options[:procedure_input_path],
+          config_path: options[:config_path],
+          run_dir:,
+          debug_xml_dir:,
+          encounter_result_payload:,
+          encounter_exit_code:,
+          step_name: 'procedure'
+        )
+      end
+
+      def run_condition_step(options:, run_dir:, debug_xml_dir:, encounter_result_payload:, encounter_exit_code:)
+        run_resource_step(
+          enabled_path: options[:condition_input_path],
+          config_path: options[:config_path],
+          run_dir:,
+          debug_xml_dir:,
+          encounter_result_payload:,
+          encounter_exit_code:,
+          step_name: 'condition'
+        )
+      end
+
+      def run_resource_step(enabled_path:, config_path:, run_dir:, debug_xml_dir:, encounter_result_payload:, encounter_exit_code:, step_name:)
+        return { ran: false } unless enabled_path
         return { ran: false, skipped: true } unless encounter_exit_code.zero?
 
         encounter_reference_id = encounter_result_payload&.dig('details', 'submission', 'reference_id')
-        raise "Encounter smoke did not produce submission.reference_id required for procedure step" if blank?(encounter_reference_id)
+        raise "Encounter smoke did not produce submission.reference_id required for #{step_name} step" if blank?(encounter_reference_id)
 
-        procedure_input_payload = read_json_file(options[:procedure_input_path])
-        raise "Procedure input file is invalid JSON: #{options[:procedure_input_path]}" if procedure_input_payload.nil?
+        input_payload = read_json_file(enabled_path)
+        raise "#{step_name.capitalize} input file is invalid JSON: #{enabled_path}" if input_payload.nil?
 
-        resolved_input_payload = build_procedure_input(procedure_input_payload, encounter_reference_id)
-        resolved_input_path = File.join(run_dir, 'procedure-input.resolved.json')
-        procedure_output_path = File.join(run_dir, 'procedure-result.json')
+        resolved_input_payload = build_step_input(input_payload, encounter_reference_id)
+        resolved_input_path = File.join(run_dir, "#{step_name}-input.resolved.json")
+        result_output_path = File.join(run_dir, "#{step_name}-result.json")
 
         write_json_file(resolved_input_path, resolved_input_payload)
-        exit_code = run_once(options[:config_path], resolved_input_path, procedure_output_path, debug_xml_dir)
+        exit_code = run_once(config_path, resolved_input_path, result_output_path, debug_xml_dir)
 
         {
           ran: true,
+          step_name:,
           exit_code:,
-          input_path: options[:procedure_input_path],
+          input_path: enabled_path,
           resolved_input_path:,
-          output_path: procedure_output_path,
-          result_payload: read_json_file(procedure_output_path)
+          output_path: result_output_path,
+          result_payload: read_json_file(result_output_path)
         }
       end
 
-      def build_procedure_input(input_payload, encounter_reference_id)
+      def build_step_input(input_payload, encounter_reference_id)
         payload = deep_copy(input_payload)
         payload['payload'] ||= {}
         payload['payload']['encounter'] ||= {}
         payload['payload']['encounter']['resource_id'] = encounter_reference_id
         payload
+      end
+
+      def overall_exit_code(encounter_exit_code, *steps)
+        return encounter_exit_code unless encounter_exit_code.zero?
+
+        steps.each do |step|
+          return step[:exit_code] if step[:ran] && !step[:exit_code].zero?
+        end
+
+        encounter_exit_code
       end
 
       def deep_copy(value)
@@ -182,7 +228,7 @@ module P1Tool
         File.write(path, JSON.pretty_generate(payload) + "\n")
       end
 
-      def print_summary(config:, config_path:, input_path:, output_path:, run_dir:, debug_xml_dir:, exit_code:, audit_tail:, encounter_result_payload:, procedure_step:)
+      def print_summary(config:, config_path:, input_path:, output_path:, run_dir:, debug_xml_dir:, exit_code:, audit_tail:, encounter_result_payload:, procedure_step:, condition_step:)
         encounter_transport_id = encounter_result_payload&.fetch('transport_id', nil)
 
         print_lines(
@@ -206,6 +252,7 @@ module P1Tool
         )
 
         print_procedure_step_summary(config:, procedure_step:, audit_tail:)
+        print_condition_step_summary(config:, condition_step:, audit_tail:)
       end
 
       def print_procedure_step_summary(config:, procedure_step:, audit_tail:)
@@ -228,6 +275,32 @@ module P1Tool
 
         print_step_audit(
           title: 'Recent procedure audit events:',
+          path: config.dig(:paths, :audit_log),
+          transport_id:,
+          limit: audit_tail
+        )
+      end
+
+      def print_condition_step_summary(config:, condition_step:, audit_tail:)
+        if condition_step[:skipped]
+          @stdout.puts('Condition step: skipped because encounter step did not finish with success')
+          return
+        end
+        return unless condition_step[:ran]
+
+        result_payload = condition_step[:result_payload]
+        transport_id = result_payload&.fetch('transport_id', nil)
+
+        print_lines(
+          "Condition input path: #{File.expand_path(condition_step[:input_path])}",
+          "Condition resolved input path: #{condition_step[:resolved_input_path]}",
+          "Condition result path: #{condition_step[:output_path]}",
+          "Condition transport ID: #{transport_id || 'n/a'}",
+          "Condition result kind: #{result_payload&.fetch('result_kind', nil) || 'n/a'}"
+        )
+
+        print_step_audit(
+          title: 'Recent condition audit events:',
           path: config.dig(:paths, :audit_log),
           transport_id:,
           limit: audit_tail

@@ -86,4 +86,43 @@ describe P1Tool::Application::LiveSmokeRunner do
     assert_includes stdout.string, 'p1_procedure_submitted'
     assert_empty stderr.string
   end
+
+  it 'runs condition smoke after successful encounter smoke' do
+    write_config_fixture(
+      config_path,
+      fixture_name: 'runtime_config.yml',
+      replacements: { '__AUDIT_LOG_PATH__' => audit_log_path }
+    )
+    File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
+    condition_input_path = File.join(tmpdir, 'condition-input.json')
+    File.write(condition_input_path, JSON.pretty_generate(fixture_json('runtime', 'register_condition_input.json')))
+
+    exit_code = with_stubbed_pkcs12_validation do
+      with_fake_p1_client_factory do
+        P1Tool::Application::LiveSmokeRunner.start(
+          [
+            '--config', config_path,
+            '--input', input_path,
+            '--condition-input', condition_input_path,
+            '--output-dir', output_dir,
+            '--clean',
+            '--audit-tail', '2'
+          ],
+          stdout: stdout,
+          stderr: stderr
+        )
+      end
+    end
+
+    condition_result_path = File.join(output_dir, 'condition-result.json')
+    resolved_condition_input_path = File.join(output_dir, 'condition-input.resolved.json')
+
+    assert_equal 0, exit_code
+    assert_equal 'success', JSON.parse(File.read(condition_result_path)).fetch('result_kind')
+    assert_equal 'stub-encounter-1',
+                 JSON.parse(File.read(resolved_condition_input_path)).dig('payload', 'encounter', 'resource_id')
+    assert_includes stdout.string, 'Condition result path:'
+    assert_includes stdout.string, 'p1_condition_submitted'
+    assert_empty stderr.string
+  end
 end
