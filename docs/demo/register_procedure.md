@@ -80,6 +80,21 @@ Operacja obsluguje podzbior danych potrzebny do rejestracji `Procedure` w obecny
 - `Procedure.location` wyprowadzamy z konfiguracji `subject`.
 - Obslugujemy pojedynczy okres procedury opisany przez `start_time` i `end_time`.
 
+## Uproszczenia modelu integratora
+
+Wzgledem pelnego profilu `PLMedicalEventProcedure` integrator upraszcza model do podstawowych danych potrzebnych do rejestracji procedury w kontekscie jednego `Encounter`.
+
+- obslugiwany jest tylko profil `PLMedicalEventProcedure`,
+- przekazujemy jeden kod procedury: `icd_9_code` i `icd_9_name`,
+- przekazujemy jeden okres wykonania: `start_time` i `end_time`,
+- przekazujemy jednego autora procedury w galezi `Procedure.asserter`,
+- nie modelujemy listy `Procedure.performer`,
+- nie modelujemy `Procedure.basedOn`,
+- nie modelujemy `Procedure.focalDevice`,
+- nie modelujemy wielu `Procedure.bodySite`; opcjonalnie przekazujemy jedno `bodySite` przez `element_code`,
+- `Procedure.location` nie jest przekazywane w payloadzie biznesowym, tylko wyprowadzane z konfiguracji `subject`,
+- `procedure.status` moze byc przekazane jawnie, ale gdy go brak, runtime ustawia `completed`.
+
 ## Mozliwe odpowiedzi
 
 Kazdy wynik zapisany przez runtime ma wspolny envelope:

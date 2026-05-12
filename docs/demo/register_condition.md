@@ -80,6 +80,23 @@ Operacja obsluguje podzbior danych potrzebny do rejestracji `Condition` w obecny
 - `Condition.category` wspiera wartosci `main` i `concurrent`.
 - `Condition.location` wyprowadzamy z konfiguracji `subject`.
 
+## Uproszczenia modelu integratora
+
+Wzgledem pelnego profilu `PLMedicalEventDiagnosis` integrator upraszcza model do podstawowych danych potrzebnych do rejestracji rozpoznania w kontekscie jednego `Encounter`.
+
+- przekazujemy jeden kod rozpoznania: `icd_10_code` i `icd_10_name`,
+- przekazujemy jedna kategorie rozpoznania: `main` albo `concurrent`,
+- przekazujemy jedno `recorded_date`,
+- przekazujemy jednego autora rozpoznania w galezi `Condition.asserter`,
+- nie modelujemy `Condition.clinicalStatus`,
+- nie modelujemy `Condition.verificationStatus`,
+- nie modelujemy `Condition.evidence`,
+- nie modelujemy `Condition.extension:pointOfEncounter`,
+- nie modelujemy `Condition.pregnancyWeek`,
+- nie modelujemy wielu `Condition.bodySite`; opcjonalnie przekazujemy jedno `bodySite` przez `element_code`,
+- `Condition.location` nie jest przekazywane w payloadzie biznesowym, tylko wyprowadzane z konfiguracji `subject`,
+- obecna integracja zaklada kodowanie rozpoznania przez ICD-10.
+
 ## Mozliwe odpowiedzi
 
 Kazdy wynik zapisany przez runtime ma wspolny envelope:

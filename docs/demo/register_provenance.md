@@ -75,6 +75,23 @@ Operacja obsluguje podzbior danych potrzebny do rejestracji `Provenance` w obecn
 - operacja zalezy od poprawnej konfiguracji `signature_service.url`.
 - `Provenance` jest wysylane po wygenerowaniu podpisu dla wszystkich wskazanych referencji.
 
+## Uproszczenia modelu integratora
+
+Wzgledem pelnego profilu `PLMedicalEventProvenance` integrator upraszcza model do podpisu systemowego uslugodawcy pod lista wskazanych zasobow.
+
+- obslugiwany jest tylko profil `PLMedicalEventProvenance`,
+- nie obslugujemy profilu `PLPractitionerSignature`,
+- `references` sa przekazywane jako prosta lista `resource_type`, `reference_id`, `version_id`,
+- walidacja wymaga obecnosci referencji `Patient` i `Encounter`,
+- pozostale referencje sa opcjonalne z perspektywy kontraktu integratora,
+- `Provenance.agent` jest redukowane do identyfikatora uslugodawcy,
+- `Provenance.signature.who` jest redukowane do identyfikatora uslugodawcy,
+- nie modelujemy `Provenance.agent.role`,
+- nie modelujemy `Provenance.agent.onBehalfOf`,
+- nie modelujemy `Provenance.signature.onBehalfOf`,
+- podpis jest zawsze generowany poza runtime przez `signature-service` na podstawie pobranych XML-i wskazanych zasobow,
+- integrator nie buduje recznie galezi `signature.data`; przekazuje tylko referencje, a runtime uzupelnia podpis automatycznie.
+
 ## Mozliwe odpowiedzi
 
 Kazdy wynik zapisany przez runtime ma wspolny envelope:
