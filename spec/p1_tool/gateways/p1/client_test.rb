@@ -131,6 +131,7 @@ describe P1Tool::Gateways::P1::Client do
     assert_equal 'replay-access-token', client.token
     assert_equal 'application/x-www-form-urlencoded', transport.requests[0].dig(:headers, 'Content-Type')
     assert_equal 'application/json', transport.requests[0].dig(:headers, 'Accept')
+    assert_equal 'Bearer replay-access-token', transport.requests[1].dig(:headers, 'Authorization')
     assert_equal 200, token_event.dig('metadata', 'http_status')
     assert_equal 'integration', token_event.dig('metadata', 'p1_environment')
     assert_equal '1290', patient_response.dig(:body, 'entry', 0, 'resource', 'id')

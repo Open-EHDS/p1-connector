@@ -31,6 +31,7 @@ module P1Tool
           handle_response!(response, expected_statuses: [200], context: 'access token')
           @token = extract_access_token(response)
           record_token_acquired(response)
+          @token
         end
 
         def token_request_headers
