@@ -1,0 +1,26 @@
+{
+  "task_id": "register-procedure-task-1",
+  "operation_kind": "register_procedure",
+  "payload": {
+    "patient": {
+      "pesel": "75061134485",
+      "first_name": "Dorota",
+      "last_name": "Kalandyk"
+    },
+    "doctor": {
+      "npwz": "5691489",
+      "profession_code": "LEK",
+      "name": "Adam739 Leczniczy"
+    },
+    "encounter": {
+      "resource_id": "VALID_ENCOUNTER_ID"
+    },
+    "procedure": {
+      "icd_9_code": "23.1108",
+      "icd_9_name": "Wypelnienie ubytku korony zeba mlecznego",
+      "element_code": "85",
+      "start_time": "2021-09-28T12:30:00+02:00",
+      "end_time": "2021-09-28T13:00:00+02:00"
+    }
+  }
+}
