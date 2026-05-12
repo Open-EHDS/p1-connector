@@ -27,6 +27,7 @@ module P1Tool
             required(:icd_10_name).filled(:string)
             required(:recorded_date).filled(:string)
             optional(:element_code).maybe(:string)
+            optional(:category).filled(:string)
             optional(:resource_id).maybe(:string)
           end
         end

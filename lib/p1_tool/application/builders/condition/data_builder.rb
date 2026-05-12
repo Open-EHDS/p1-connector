@@ -19,11 +19,14 @@ module P1Tool
             doctor = payload.fetch(:doctor)
             patient = payload.fetch(:patient)
             element = build_element(condition[:element_code])
+            category_code = condition[:category] || constants::DEFAULT_CONDITION_CATEGORY_CODE
 
             {
               resource_id: condition[:resource_id],
               icd_10_code: condition.fetch(:icd_10_code),
               icd_10_name: condition.fetch(:icd_10_name),
+              category_code:,
+              category_display: constants.condition_category_display_for(category_code),
               encounter_reference_id: payload.fetch(:encounter).fetch(:resource_id),
               recorded_date: condition.fetch(:recorded_date),
               patient_pesel: patient.fetch(:pesel),

@@ -44,7 +44,24 @@ describe P1Tool::Application::Operations::RegisterCondition do
       assert_equal 'cond-123', result.dig(:submission, :reference_id)
     end
 
-    it 'rejects invalid element_code and recorded_date' do
+    it 'accepts concurrent diagnosis category' do
+      result = operation_class.call(
+        {
+          task_id: input.fetch('task_id'),
+          operation_kind: input.fetch('operation_kind'),
+          payload: input.fetch('payload').merge(
+            'condition' => input.fetch('payload').fetch('condition').merge('category' => 'concurrent')
+          )
+        },
+        config: config,
+        p1_client: build_fake_p1_client
+      )
+
+      assert_equal 'created', result.dig(:submission, :status)
+      assert_equal 'stub-condition-1', result.dig(:submission, :reference_id)
+    end
+
+    it 'rejects invalid category, element_code and recorded_date' do
       error = assert_raises(P1Tool::InputValidationError) do
         operation_class.call(
           {
@@ -67,6 +84,7 @@ describe P1Tool::Application::Operations::RegisterCondition do
               condition: {
                 icd_10_code: 'K02',
                 icd_10_name: 'Prochnica zebow',
+                category: 'other',
                 element_code: 'unknown',
                 recorded_date: 'not-a-date'
               }
@@ -76,6 +94,7 @@ describe P1Tool::Application::Operations::RegisterCondition do
         )
       end
 
+      assert_equal ['must be one of: main, concurrent'], error.details.dig(:condition, :category)
       assert_equal ['must be a valid ISO8601 date time'], error.details.dig(:condition, :recorded_date)
       assert_equal ['is not present in P1 element catalog'], error.details.dig(:condition, :element_code)
     end

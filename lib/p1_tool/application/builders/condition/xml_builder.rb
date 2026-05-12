@@ -60,8 +60,8 @@ module P1Tool
             xml.category do
               xml.coding do
                 xml.system(value: constants::CONDITION_CATEGORY_SYSTEM)
-                xml.code(value: constants::CONDITION_CATEGORY_CODE)
-                display(xml, constants::CONDITION_CATEGORY_DISPLAY)
+                xml.code(value: data[:category_code])
+                display(xml, data[:category_display])
               end
             end
           end

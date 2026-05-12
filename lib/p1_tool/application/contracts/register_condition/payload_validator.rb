@@ -21,6 +21,7 @@ module P1Tool
             normalized_payload = normalized_payload(validation, normalized)
             super
             validate_recorded_date!(normalized_payload, details)
+            validate_category!(normalized_payload, details)
             validate_element_code!(normalized_payload, details, section: :condition, element_catalog:)
           end
 
@@ -29,6 +30,19 @@ module P1Tool
             return unless parse_iso8601(recorded_date).nil?
 
             append_error(details, :condition, :recorded_date, 'must be a valid ISO8601 date time')
+          end
+
+          def validate_category!(normalized, details)
+            category = normalized.dig(:condition, :category)
+            return if blank?(category)
+            return if constants.supported_condition_category_codes.include?(category)
+
+            append_error(
+              details,
+              :condition,
+              :category,
+              "must be one of: #{constants.supported_condition_category_codes.join(', ')}"
+            )
           end
 
           def payload_schema = PayloadSchema
