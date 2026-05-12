@@ -10,7 +10,7 @@ redis:
   url: <%= ENV['REDIS_URL'] || 'redis://127.0.0.1:6379/0' %>
 
 signature_service:
-  url: <%= ENV['SIGNATURE_SERVICE_URL'] || 'http://127.0.0.1:8080' %>
+  url: <%= ENV['SIGNATURE_SERVICE_URL'] || 'http://127.0.0.1:9093' %>
 
 p1:
   environment: <%= ENV['P1_ENVIRONMENT'] || 'integration' %>

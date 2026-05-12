@@ -19,6 +19,10 @@ module P1Tool
           @transport = transport || build_http_transport
         end
 
+        def access_token
+          ensure_access_token!
+        end
+
         def create_resource(resource_type:, xml:)
           ensure_access_token!
           response = transport.request(
@@ -47,11 +51,28 @@ module P1Tool
           ensure_access_token!
           response = transport.request(
             method: :get,
-            path: "fhir/#{resource_type}/#{reference_id}",
-            headers: token_headers
+            path: resource_path(resource_type:, reference_id:),
+            headers: json_headers
           )
           handle_response!(response, expected_statuses: [200], context: "get #{resource_type} #{reference_id}")
           { status: response.status, body: parse_body(response.body), headers: response.headers }
+        end
+
+        def get_resource_xml(resource_type:, reference_id:, version_id: nil)
+          ensure_access_token!
+          response = transport.request(
+            method: :get,
+            path: resource_path(resource_type:, reference_id:, version_id:),
+            headers: xml_accept_headers
+          )
+          context = version_id ? "get #{resource_type} #{reference_id} version #{version_id} as xml" : "get #{resource_type} #{reference_id} as xml"
+          handle_response!(response, expected_statuses: [200], context:)
+
+          {
+            status: response.status,
+            body: response.body.to_s,
+            headers: response.headers
+          }
         end
 
         def find_patient(payload:)
@@ -141,17 +162,31 @@ module P1Tool
           token_headers.merge('Content-Type' => 'application/xml;charset=UTF-8')
         end
 
+        def json_headers
+          token_headers.merge('Accept' => 'application/fhir+json')
+        end
+
+        def xml_accept_headers
+          token_headers.merge('Accept' => 'application/fhir+xml')
+        end
+
+        def resource_path(resource_type:, reference_id:, version_id: nil)
+          path = "fhir/#{resource_type}/#{reference_id}"
+          return path if version_id.nil? || version_id == ''
+
+          "#{path}/_history/#{version_id}"
+        end
+
         def handle_response!(response, expected_statuses:, context:)
           return if expected_statuses.include?(response.status)
 
           body = parse_body(response.body)
-          message = "P1 request failed during #{context}: HTTP #{response.status} #{body.inspect}"
+          message = "P1 request failed during #{context}: HTTP #{response.status}"
+          details = { http_status: response.status, body: body }
 
-          if response.status >= 500
-            raise P1Tool::TransientError, message
-          end
+          raise P1Tool::TransientError.new(message, details: details) if response.status >= 500
 
-          raise P1Tool::BusinessError, message
+          raise P1Tool::BusinessError.new(message, details: details)
         end
 
         def parse_body(body)

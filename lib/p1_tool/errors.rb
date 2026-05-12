@@ -23,6 +23,21 @@ module P1Tool
     end
   end
 
-  class BusinessError < Error; end
-  class TransientError < Error; end
+  class BusinessError < Error
+    attr_reader :details
+
+    def initialize(message, details: nil)
+      @details = details
+      super(message)
+    end
+  end
+
+  class TransientError < Error
+    attr_reader :details
+
+    def initialize(message, details: nil)
+      @details = details
+      super(message)
+    end
+  end
 end

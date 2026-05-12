@@ -144,5 +144,39 @@ describe P1Tool::Runtime::TaskProcessor do
       assert_equal 'register-encounter-task-1', persisted_result.fetch('task_id')
       assert_equal 'register_encounter', persisted_result.fetch('operation_kind')
     end
+
+    it 'persists structured upstream error details in failure result' do
+      File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
+
+      result = with_singleton_stub(
+        P1Tool::Application::Dispatcher,
+        :call_with_config,
+        lambda do |_input, config:|
+          raise P1Tool::BusinessError.new(
+            'p1 failed',
+            details: {
+              http_status: 422,
+              body: { 'issue' => [{ 'diagnostics' => 'invalid payload' }] }
+            }
+          )
+        end
+      ) do
+        processor.call
+      end
+
+      assert_equal 'failure', result[:result_kind]
+      assert_equal 422, result.dig(:error, :http_status)
+      assert_equal [{ 'diagnostics' => 'invalid payload' }], result.dig(:error, :body, 'issue')
+
+      persisted_result = JSON.parse(File.read(output_path))
+      assert_equal 422, persisted_result.fetch('error').fetch('http_status')
+      assert_equal [{ 'diagnostics' => 'invalid payload' }], persisted_result.fetch('error').dig('body', 'issue')
+
+      audit_lines = File.readlines(audit_log_path, chomp: true).map { |line| JSON.parse(line) }
+      error_entry = audit_lines.find { |entry| entry.fetch('event_type') == 'execution_error' }
+
+      assert_equal 422, error_entry.dig('metadata', 'http_status')
+      assert_equal [{ 'diagnostics' => 'invalid payload' }], error_entry.dig('metadata', 'body', 'issue')
+    end
   end
 end

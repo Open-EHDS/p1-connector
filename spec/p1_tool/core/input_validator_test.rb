@@ -30,7 +30,8 @@ describe P1Tool::Core::InputValidator do
         )
       end
 
-      assert_equal ['must be one of: register_encounter, register_procedure, register_condition'], error.details[:operation_kind]
+      assert_equal ['must be one of: register_encounter, register_procedure, register_condition, register_provenance, get_resource'],
+                   error.details[:operation_kind]
     end
 
     it 'rejects missing required keys' do

@@ -14,15 +14,16 @@ module P1Tool
             end
 
             def call
-              found_patient_id = find_existing_patient_id
-              return found_result(found_patient_id) if found_patient_id
+              found_patient = find_existing_patient
+              return found_result(found_patient) if found_patient
 
               response = client.create_resource(resource_type: 'Patient', xml: xml_builder.new(payload:).call)
               P1Tool::Runtime::CurrentExecution.record_event(
                 event_type: 'p1_patient_created',
                 metadata: {
                   http_status: response.fetch(:status),
-                  patient_reference_id: response.fetch(:reference_id)
+                  patient_reference_id: response.fetch(:reference_id),
+                  patient_version_id: response[:version_id]
                 }
               )
 
@@ -30,6 +31,7 @@ module P1Tool
                 status: 'created',
                 action: 'find_or_create_patient',
                 patient_reference_id: response.fetch(:reference_id),
+                patient_version_id: response[:version_id],
                 response_status: response.fetch(:status)
               }
             end
@@ -38,33 +40,39 @@ module P1Tool
 
             attr_reader :payload, :subject, :client, :xml_builder
 
-            def find_existing_patient_id
+            def find_existing_patient
               response = client.find_patient(payload:)
               bundle = response[:body]
-              patient_id =
+              patient =
                 if bundle.is_a?(Hash) && bundle['total'].to_i.positive?
-                  bundle.dig('entry', 0, 'resource', 'id')
+                  resource = bundle.dig('entry', 0, 'resource')
+                  {
+                    reference_id: resource['id'],
+                    version_id: resource.dig('meta', 'versionId')
+                  } unless resource.nil?
                 end
 
               P1Tool::Runtime::CurrentExecution.record_event(
                 event_type: 'p1_patient_lookup_finished',
                 metadata: {
                   http_status: response[:status],
-                  found: !patient_id.nil?,
-                  patient_reference_id: patient_id
+                  found: !patient.nil?,
+                  patient_reference_id: patient&.fetch(:reference_id, nil),
+                  patient_version_id: patient&.fetch(:version_id, nil)
                 }.compact
               )
-              return if patient_id.nil?
+              return if patient.nil?
 
-              patient_id
+              patient
             end
 
-            def found_result(patient_id)
+            def found_result(patient)
               {
                 status: 'found',
                 action: 'find_or_create_patient',
-                patient_reference_id: patient_id
-              }
+                patient_reference_id: patient.fetch(:reference_id),
+                patient_version_id: patient[:version_id]
+              }.compact
             end
 
           end

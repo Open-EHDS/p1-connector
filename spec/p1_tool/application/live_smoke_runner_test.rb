@@ -125,4 +125,90 @@ describe P1Tool::Application::LiveSmokeRunner do
     assert_includes stdout.string, 'p1_condition_submitted'
     assert_empty stderr.string
   end
+
+  it 'runs provenance smoke after successful prerequisite steps' do
+    write_config_fixture(
+      config_path,
+      fixture_name: 'runtime_config.yml',
+      replacements: { '__AUDIT_LOG_PATH__' => audit_log_path }
+    )
+    File.write(input_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
+    procedure_input_path = File.join(tmpdir, 'procedure-input.json')
+    condition_input_path = File.join(tmpdir, 'condition-input.json')
+    provenance_input_path = File.join(tmpdir, 'provenance-input.json')
+    File.write(procedure_input_path, JSON.pretty_generate(fixture_json('runtime', 'register_procedure_input.json')))
+    File.write(condition_input_path, JSON.pretty_generate(fixture_json('runtime', 'register_condition_input.json')))
+    File.write(provenance_input_path, JSON.pretty_generate(fixture_json('runtime', 'register_provenance_input.json')))
+
+    signature_client = Class.new do
+      attr_reader :documents
+
+      def generate_signature(documents:)
+        @documents = documents
+        {
+          'document' => '<Signature/>',
+          'documentBase64' => 'PFNpZ25hdHVyZS8+'
+        }
+      end
+    end.new
+
+    exit_code = with_stubbed_pkcs12_validation do
+      with_fake_p1_client_factory do
+        with_singleton_stub(P1Tool::Gateways::SignatureService::Client, :new, ->(base_url:) { signature_client }) do
+          P1Tool::Application::LiveSmokeRunner.start(
+            [
+              '--config', config_path,
+              '--input', input_path,
+              '--procedure-input', procedure_input_path,
+              '--condition-input', condition_input_path,
+              '--provenance-input', provenance_input_path,
+              '--output-dir', output_dir,
+              '--clean',
+              '--audit-tail', '2'
+            ],
+            stdout: stdout,
+            stderr: stderr
+          )
+        end
+      end
+    end
+
+    provenance_result_path = File.join(output_dir, 'provenance-result.json')
+    resolved_provenance_input_path = File.join(output_dir, 'provenance-input.resolved.json')
+    resolved_references = JSON.parse(File.read(resolved_provenance_input_path)).fetch('payload').fetch('references')
+
+    assert_equal 0, exit_code
+    assert_equal 'success', JSON.parse(File.read(provenance_result_path)).fetch('result_kind')
+    assert_equal [
+      { 'resource_type' => 'Patient', 'reference_id' => 'stub-patient-75061134485', 'version_id' => '7' },
+      { 'resource_type' => 'Encounter', 'reference_id' => 'stub-encounter-1', 'version_id' => '1' },
+      { 'resource_type' => 'Procedure', 'reference_id' => 'stub-procedure-1', 'version_id' => '1' },
+      { 'resource_type' => 'Condition', 'reference_id' => 'stub-condition-1', 'version_id' => '1' }
+    ], resolved_references
+    assert_equal [
+      {
+        uri: 'https://isus.ezdrowie.gov.pl/fhir/Patient/stub-patient-75061134485/_history/7',
+        mimeType: 'application/fhir+xml',
+        content: '<Patient id="stub-patient-75061134485" version="7"/>'
+      },
+      {
+        uri: 'https://isus.ezdrowie.gov.pl/fhir/Encounter/stub-encounter-1/_history/1',
+        mimeType: 'application/fhir+xml',
+        content: '<Encounter id="stub-encounter-1" version="1"/>'
+      },
+      {
+        uri: 'https://isus.ezdrowie.gov.pl/fhir/Procedure/stub-procedure-1/_history/1',
+        mimeType: 'application/fhir+xml',
+        content: '<Procedure id="stub-procedure-1" version="1"/>'
+      },
+      {
+        uri: 'https://isus.ezdrowie.gov.pl/fhir/Condition/stub-condition-1/_history/1',
+        mimeType: 'application/fhir+xml',
+        content: '<Condition id="stub-condition-1" version="1"/>'
+      }
+    ], signature_client.documents
+    assert_includes stdout.string, 'Provenance result path:'
+    assert_includes stdout.string, 'p1_provenance_submitted'
+    assert_empty stderr.string
+  end
 end

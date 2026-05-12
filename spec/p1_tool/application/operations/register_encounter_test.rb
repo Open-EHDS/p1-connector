@@ -24,6 +24,7 @@ describe P1Tool::Application::Operations::RegisterEncounter do
       assert_match(/\A[\h-]{36}\z/, result[:episode_identifier])
       assert_equal 'stub-patient-75061134485', result[:patient_reference_id]
       assert_equal 'found', result.dig(:patient_resolution, :status)
+      assert_equal '7', result.dig(:patient_resolution, :patient_version_id)
       assert_equal 'created', result.dig(:submission, :status)
       refute result.key?(:xml)
       refute result.key?(:debug_xml_path)
@@ -42,6 +43,7 @@ describe P1Tool::Application::Operations::RegisterEncounter do
 
       assert_equal 'stub-patient-75061134485', result[:patient_reference_id]
       assert_equal 'found', result.dig(:patient_resolution, :status)
+      assert_equal '7', result.dig(:patient_resolution, :patient_version_id)
       assert_equal 'updated', result.dig(:submission, :status)
       assert_equal 'enc-123', result.dig(:submission, :reference_id)
     end

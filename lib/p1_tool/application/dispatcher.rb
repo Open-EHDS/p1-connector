@@ -6,7 +6,9 @@ module P1Tool
       OPERATIONS = {
         'register_encounter' => Operations::RegisterEncounter,
         'register_procedure' => Operations::RegisterProcedure,
-        'register_condition' => Operations::RegisterCondition
+        'register_condition' => Operations::RegisterCondition,
+        'register_provenance' => Operations::RegisterProvenance,
+        'get_resource' => Operations::GetResource
       }.freeze
 
       def self.call(input)

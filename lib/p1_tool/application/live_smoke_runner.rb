@@ -49,8 +49,17 @@ module P1Tool
           encounter_result_payload:,
           encounter_exit_code: exit_code
         )
+        provenance_step = run_provenance_step(
+          options:,
+          run_dir:,
+          debug_xml_dir:,
+          encounter_result_payload:,
+          encounter_exit_code: exit_code,
+          procedure_step:,
+          condition_step:
+        )
 
-        exit_code = overall_exit_code(exit_code, procedure_step, condition_step)
+        exit_code = overall_exit_code(exit_code, procedure_step, condition_step, provenance_step)
 
         print_summary(
           config:,
@@ -63,7 +72,8 @@ module P1Tool
           audit_tail: options[:audit_tail],
           encounter_result_payload:,
           procedure_step:,
-          condition_step:
+          condition_step:,
+          provenance_step:
         )
 
         exit_code
@@ -84,13 +94,16 @@ module P1Tool
           audit_tail: DEFAULT_AUDIT_TAIL
         }
         parser = OptionParser.new do |opts|
-          opts.banner = 'Usage: p1-live-smoke --input PATH [--procedure-input PATH] [--condition-input PATH] [--config PATH] [--output-dir PATH] [--audit-tail N] [--clean]'
+          opts.banner = 'Usage: p1-live-smoke --input PATH [--procedure-input PATH] [--condition-input PATH] [--provenance-input PATH] [--config PATH] [--output-dir PATH] [--audit-tail N] [--clean]'
           opts.on('--input PATH', 'Path to the input JSON file') { |path| options[:input_path] = path }
           opts.on('--procedure-input PATH', 'Optional path to register_procedure input JSON file') do |path|
             options[:procedure_input_path] = path
           end
           opts.on('--condition-input PATH', 'Optional path to register_condition input JSON file') do |path|
             options[:condition_input_path] = path
+          end
+          opts.on('--provenance-input PATH', 'Optional path to register_provenance input JSON file') do |path|
+            options[:provenance_input_path] = path
           end
           opts.on('--config PATH', 'Path to the YAML config file') { |path| options[:config_path] = path }
           opts.on('--output-dir PATH', 'Directory for smoke test artifacts') { |path| options[:output_dir] = path }
@@ -174,6 +187,36 @@ module P1Tool
         )
       end
 
+      def run_provenance_step(options:, run_dir:, debug_xml_dir:, encounter_result_payload:, encounter_exit_code:, procedure_step:, condition_step:)
+        return { ran: false } unless options[:provenance_input_path]
+        return { ran: false, skipped: true } unless provenance_prerequisites_met?(encounter_exit_code:, procedure_step:, condition_step:)
+
+        input_payload = read_json_file(options[:provenance_input_path])
+        raise "Provenance input file is invalid JSON: #{options[:provenance_input_path]}" if input_payload.nil?
+
+        resolved_input_payload = build_provenance_input(
+          input_payload:,
+          encounter_result_payload:,
+          procedure_step:,
+          condition_step:
+        )
+        resolved_input_path = File.join(run_dir, 'provenance-input.resolved.json')
+        result_output_path = File.join(run_dir, 'provenance-result.json')
+
+        write_json_file(resolved_input_path, resolved_input_payload)
+        exit_code = run_once(options[:config_path], resolved_input_path, result_output_path, debug_xml_dir)
+
+        {
+          ran: true,
+          step_name: 'provenance',
+          exit_code:,
+          input_path: options[:provenance_input_path],
+          resolved_input_path:,
+          output_path: result_output_path,
+          result_payload: read_json_file(result_output_path)
+        }
+      end
+
       def run_resource_step(enabled_path:, config_path:, run_dir:, debug_xml_dir:, encounter_result_payload:, encounter_exit_code:, step_name:)
         return { ran: false } unless enabled_path
         return { ran: false, skipped: true } unless encounter_exit_code.zero?
@@ -210,6 +253,66 @@ module P1Tool
         payload
       end
 
+      def build_provenance_input(input_payload:, encounter_result_payload:, procedure_step:, condition_step:)
+        payload = deep_copy(input_payload)
+        payload['payload'] ||= {}
+        payload['payload']['references'] = build_provenance_references(
+          encounter_result_payload:,
+          procedure_step:,
+          condition_step:
+        )
+        payload
+      end
+
+      def build_provenance_references(encounter_result_payload:, procedure_step:, condition_step:)
+        patient_reference_id = encounter_result_payload&.dig('details', 'patient_resolution', 'patient_reference_id')
+        patient_version_id = encounter_result_payload&.dig('details', 'patient_resolution', 'patient_version_id')
+        encounter_reference_id = encounter_result_payload&.dig('details', 'submission', 'reference_id')
+        encounter_version_id = encounter_result_payload&.dig('details', 'submission', 'version_id')
+
+        raise 'Encounter smoke did not produce patient reference required for provenance step' if blank?(patient_reference_id)
+        raise 'Encounter smoke did not produce patient version required for provenance step' if blank?(patient_version_id)
+        raise 'Encounter smoke did not produce encounter reference required for provenance step' if blank?(encounter_reference_id)
+        raise 'Encounter smoke did not produce encounter version required for provenance step' if blank?(encounter_version_id)
+
+        references = [
+          build_provenance_reference('Patient', patient_reference_id, patient_version_id),
+          build_provenance_reference('Encounter', encounter_reference_id, encounter_version_id)
+        ]
+
+        append_step_reference(references, procedure_step, 'Procedure')
+        append_step_reference(references, condition_step, 'Condition')
+        references
+      end
+
+      def append_step_reference(references, step, resource_type)
+        return unless step[:ran]
+        return unless step[:exit_code].zero?
+
+        reference_id = step.dig(:result_payload, 'details', 'submission', 'reference_id')
+        version_id = step.dig(:result_payload, 'details', 'submission', 'version_id')
+        raise "#{resource_type} smoke did not produce submission.reference_id required for provenance step" if blank?(reference_id)
+        raise "#{resource_type} smoke did not produce submission.version_id required for provenance step" if blank?(version_id)
+
+        references << build_provenance_reference(resource_type, reference_id, version_id)
+      end
+
+      def build_provenance_reference(resource_type, reference_id, version_id)
+        {
+          'resource_type' => resource_type,
+          'reference_id' => reference_id,
+          'version_id' => version_id
+        }
+      end
+
+      def provenance_prerequisites_met?(encounter_exit_code:, procedure_step:, condition_step:)
+        return false unless encounter_exit_code.zero?
+        return false if procedure_step[:ran] && !procedure_step[:exit_code].zero?
+        return false if condition_step[:ran] && !condition_step[:exit_code].zero?
+
+        true
+      end
+
       def overall_exit_code(encounter_exit_code, *steps)
         return encounter_exit_code unless encounter_exit_code.zero?
 
@@ -228,7 +331,7 @@ module P1Tool
         File.write(path, JSON.pretty_generate(payload) + "\n")
       end
 
-      def print_summary(config:, config_path:, input_path:, output_path:, run_dir:, debug_xml_dir:, exit_code:, audit_tail:, encounter_result_payload:, procedure_step:, condition_step:)
+      def print_summary(config:, config_path:, input_path:, output_path:, run_dir:, debug_xml_dir:, exit_code:, audit_tail:, encounter_result_payload:, procedure_step:, condition_step:, provenance_step:)
         encounter_transport_id = encounter_result_payload&.fetch('transport_id', nil)
 
         print_lines(
@@ -253,6 +356,7 @@ module P1Tool
 
         print_procedure_step_summary(config:, procedure_step:, audit_tail:)
         print_condition_step_summary(config:, condition_step:, audit_tail:)
+        print_provenance_step_summary(config:, provenance_step:, audit_tail:)
       end
 
       def print_procedure_step_summary(config:, procedure_step:, audit_tail:)
@@ -301,6 +405,32 @@ module P1Tool
 
         print_step_audit(
           title: 'Recent condition audit events:',
+          path: config.dig(:paths, :audit_log),
+          transport_id:,
+          limit: audit_tail
+        )
+      end
+
+      def print_provenance_step_summary(config:, provenance_step:, audit_tail:)
+        if provenance_step[:skipped]
+          @stdout.puts('Provenance step: skipped because prerequisite steps did not finish with success')
+          return
+        end
+        return unless provenance_step[:ran]
+
+        result_payload = provenance_step[:result_payload]
+        transport_id = result_payload&.fetch('transport_id', nil)
+
+        print_lines(
+          "Provenance input path: #{File.expand_path(provenance_step[:input_path])}",
+          "Provenance resolved input path: #{provenance_step[:resolved_input_path]}",
+          "Provenance result path: #{provenance_step[:output_path]}",
+          "Provenance transport ID: #{transport_id || 'n/a'}",
+          "Provenance result kind: #{result_payload&.fetch('result_kind', nil) || 'n/a'}"
+        )
+
+        print_step_audit(
+          title: 'Recent provenance audit events:',
           path: config.dig(:paths, :audit_log),
           transport_id:,
           limit: audit_tail

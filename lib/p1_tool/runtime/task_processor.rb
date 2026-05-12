@@ -97,7 +97,7 @@ module P1Tool
           context,
           result_kind: 'invalid',
           timestamps: build_timestamps(started_at),
-          error: build_error('invalid_input', error.message, 'input'),
+          error: build_error('invalid_input', error.message, 'input', source_error: error),
           details: invalid_details(error)
         )
 
@@ -116,7 +116,7 @@ module P1Tool
           context,
           result_kind: 'failure',
           timestamps: build_timestamps(started_at),
-          error: build_error('runtime_error', error.message, 'technical'),
+          error: build_error('runtime_error', error.message, 'technical', source_error: error),
           details: { exception_class: error.class.name }
         )
 
@@ -124,7 +124,7 @@ module P1Tool
           context,
           error_code: 'runtime_error',
           error_category: 'technical',
-          metadata: { exception_class: error.class.name, message: error.message },
+          metadata: failure_metadata(error),
           result: 'failure'
         )
         finalize_result(context, result, result_kind: 'failure')
@@ -154,12 +154,12 @@ module P1Tool
         }
       end
 
-      def build_error(code, message, category)
+      def build_error(code, message, category, source_error: nil)
         {
           code: code,
           message: message,
           category: category
-        }
+        }.merge(structured_error_attributes(source_error))
       end
 
       def invalid_details(error)
@@ -188,6 +188,25 @@ module P1Tool
         persist_result(payload)
         @audit_log.record_finish(context, result: result_kind, metadata: { output_path: @output_path })
         payload
+      end
+
+      def failure_metadata(error)
+        {
+          exception_class: error.class.name,
+          message: error.message
+        }.merge(structured_error_attributes(error))
+      end
+
+      def structured_error_attributes(error)
+        return {} unless error.respond_to?(:details)
+
+        details = error.details
+        return {} unless details.is_a?(Hash)
+
+        {}.tap do |attributes|
+          attributes[:http_status] = details[:http_status] if details.key?(:http_status)
+          attributes[:body] = details[:body] if details.key?(:body)
+        end
       end
 
       def update_current_context(context)

@@ -1,0 +1,36 @@
+{
+  "task_id": "register-provenance-task-1",
+  "operation_kind": "register_provenance",
+  "payload": {
+    "doctor": {
+      "npwz": "5691489",
+      "profession_code": "LEK",
+      "name": "Adam739 Leczniczy"
+    },
+    "references": [
+      {
+        "resource_type": "Patient",
+        "reference_id": "pat-123",
+        "version_id": "7"
+      },
+      {
+        "resource_type": "Encounter",
+        "reference_id": "enc-123",
+        "version_id": "1"
+      },
+      {
+        "resource_type": "Procedure",
+        "reference_id": "proc-123",
+        "version_id": "1"
+      },
+      {
+        "resource_type": "Condition",
+        "reference_id": "cond-123",
+        "version_id": "1"
+      }
+    ],
+    "provenance": {
+      "recorded_at": "2021-09-28T13:00:00+02:00"
+    }
+  }
+}

@@ -157,4 +157,47 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
     assert_equal 'register-encounter-task-1', persisted_result.fetch('task_id')
     assert_equal 'register_encounter', persisted_result.fetch('operation_kind')
   end
+
+  it 'stores structured upstream error details in terminal failure result' do
+    processing_path = File.join(workspace.path_for(:processing), 'task-5.json')
+    File.write(processing_path, JSON.pretty_generate(fixture_json('runtime', 'register_encounter_input.json')))
+
+    result = with_singleton_stub(
+      P1Tool::Application::Dispatcher,
+      :call_with_config,
+      lambda do |_input, config:|
+        raise P1Tool::BusinessError.new(
+          'p1 failed',
+          details: {
+            http_status: 422,
+            body: { 'issue' => [{ 'diagnostics' => 'invalid payload' }] }
+          }
+        )
+      end
+    ) do
+      processor_class.new(
+        config,
+        processing_path:,
+        attempt: 2,
+        correlation_id: 'job-2',
+        runtime: {
+          workspace:,
+          audit_log:,
+          clock:,
+          transport_id_generator: -> { transport_id }
+        }
+      ).call
+    end
+
+    assert_equal 'failure', result[:result_kind]
+    assert_equal 'business', result.dig(:error, :category)
+    assert_equal 422, result.dig(:error, :http_status)
+    assert_equal [{ 'diagnostics' => 'invalid payload' }], result.dig(:error, :body, 'issue')
+
+    result_path = File.join(workspace.path_for(:results), 'task-5.json.result.json')
+    persisted_result = JSON.parse(File.read(result_path))
+
+    assert_equal 422, persisted_result.fetch('error').fetch('http_status')
+    assert_equal [{ 'diagnostics' => 'invalid payload' }], persisted_result.fetch('error').dig('body', 'issue')
+  end
 end

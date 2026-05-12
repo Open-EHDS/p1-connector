@@ -93,7 +93,7 @@ module P1Tool
           context,
           result_kind: 'invalid',
           timestamps: build_timestamps(started_at),
-          error: build_error('invalid_input', error.message, 'input'),
+          error: build_error('invalid_input', error.message, 'input', source_error: error),
           details: invalid_details(error)
         )
         record_error(
@@ -145,14 +145,6 @@ module P1Tool
         }
       end
 
-      def build_error(code, message, category)
-        {
-          code: code,
-          message: message,
-          category: category
-        }
-      end
-
       def invalid_details(error)
         return nil unless error.respond_to?(:details)
         return nil if error.details.nil? || error.details.empty?
@@ -186,7 +178,7 @@ module P1Tool
           context,
           result_kind: 'failure',
           timestamps: build_timestamps(started_at),
-          error: build_error('runtime_error', error.message, category),
+          error: build_error('runtime_error', error.message, category, source_error: error),
           details: { exception_class: error.class.name }
         )
       end
@@ -218,14 +210,34 @@ module P1Tool
           message: error.message,
           retry_scheduled: true,
           next_attempt: @attempt + 1
-        }
+        }.merge(structured_error_attributes(error))
       end
 
       def terminal_failure_metadata(error)
         {
           exception_class: error.class.name,
           message: error.message
-        }
+        }.merge(structured_error_attributes(error))
+      end
+
+      def build_error(code, message, category, source_error: nil)
+        {
+          code: code,
+          message: message,
+          category: category
+        }.merge(structured_error_attributes(source_error))
+      end
+
+      def structured_error_attributes(error)
+        return {} unless error.respond_to?(:details)
+
+        details = error.details
+        return {} unless details.is_a?(Hash)
+
+        {}.tap do |attributes|
+          attributes[:http_status] = details[:http_status] if details.key?(:http_status)
+          attributes[:body] = details[:body] if details.key?(:body)
+        end
       end
 
       def update_current_context(context)

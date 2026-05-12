@@ -24,7 +24,7 @@ describe P1Tool::Application::Integrations::P1::Patient::FindOrCreate do
 
       def create_resource(resource_type:, xml:)
         @created_xml = xml
-        { status: 201, reference_id: 'new-patient-1' }
+        { status: 201, reference_id: 'new-patient-1', version_id: '1' }
       end
     end
   end
@@ -57,9 +57,11 @@ describe P1Tool::Application::Integrations::P1::Patient::FindOrCreate do
 
     assert_equal 'created', result[:status]
     assert_equal 'new-patient-1', result[:patient_reference_id]
+    assert_equal '1', result[:patient_version_id]
     assert_equal %w[p1_patient_lookup_finished p1_patient_created], events.map { |event| event['event_type'] }
     assert_equal false, events[0].dig('metadata', 'found')
     assert_equal 'new-patient-1', events[1].dig('metadata', 'patient_reference_id')
+    assert_equal '1', events[1].dig('metadata', 'patient_version_id')
     assert_includes client.created_xml, '<Patient'
     assert_includes client.created_xml, 'PLPatient'
   end

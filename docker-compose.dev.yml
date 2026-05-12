@@ -12,5 +12,16 @@ services:
       timeout: 5s
       retries: 5
 
+  signature-tool:
+    build:
+      context: ../signature_tool
+    ports:
+      - "${HOST_SIGNATURE_API_PORT:-9093}:8080"
+    environment:
+      SIGNATURE_TOOL_SIGNING_CERTIFICATE_PATH: "${SIGNATURE_TOOL_SIGNING_CERTIFICATE_PATH:-/certs/wss.p12}"
+      SIGNATURE_TOOL_SIGNING_PASSWORD: "${SIGNATURE_TOOL_SIGNING_PASSWORD:-}"
+    volumes:
+      - ./volumes/certs:/certs:ro
+
 volumes:
   redis-data:

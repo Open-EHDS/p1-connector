@@ -59,7 +59,7 @@ describe P1Tool::Core::ConfigurationLoader do
             redis:
               url: <%= ENV['REDIS_URL'] || 'redis://127.0.0.1:6379/0' %>
             signature_service:
-              url: <%= ENV['SIGNATURE_SERVICE_URL'] || 'http://127.0.0.1:8080' %>
+              url: <%= ENV['SIGNATURE_SERVICE_URL'] || 'http://127.0.0.1:9093' %>
             p1:
               environment: <%= ENV['P1_ENVIRONMENT'] || 'integration' %>
             subject:
@@ -139,7 +139,7 @@ describe P1Tool::Core::ConfigurationLoader do
             redis:
               url: redis://127.0.0.1:6379/0
             signature_service:
-              url: http://127.0.0.1:8080
+              url: http://127.0.0.1:9093
             p1:
               environment: integration
             subject:
@@ -196,7 +196,7 @@ describe P1Tool::Core::ConfigurationLoader do
             redis:
               url: <%= ENV.fetch('REDIS_URL') %>
             signature_service:
-              url: http://127.0.0.1:8080
+              url: http://127.0.0.1:9093
             p1:
               environment: integration
             subject:
