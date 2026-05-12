@@ -11,7 +11,7 @@ module P1Tool
 
           def initialize(
             constants: P1Tool::Application::Builders::Procedure::Constants,
-            element_catalog: P1Tool::Application::Builders::P1ElementCatalog.new
+            element_catalog: P1Tool::Application::ReferenceData::P1ElementCatalog.new
           )
             @constants = constants
             @element_catalog = element_catalog

@@ -2,7 +2,7 @@
 
 module P1Tool
   module Application
-    module Builders
+    module ReferenceData
       class P1ElementCatalog
         DATA_FILE = File.expand_path('../../../../data/p1_procedure_elements.csv', __dir__)
 

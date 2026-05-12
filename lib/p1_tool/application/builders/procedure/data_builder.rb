@@ -7,7 +7,7 @@ module P1Tool
         class DataBuilder
           include P1Tool::Application::Builders::SharedDataBuilderSupport
 
-          def initialize(payload:, subject:, constants: Constants, element_catalog: P1Tool::Application::Builders::P1ElementCatalog.new)
+          def initialize(payload:, subject:, constants: Constants, element_catalog: P1Tool::Application::ReferenceData::P1ElementCatalog.new)
             @payload = payload
             @subject = subject
             @constants = constants
