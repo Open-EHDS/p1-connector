@@ -20,7 +20,7 @@ module P1Tool
               documents: build_signature_documents(fetched_documents)
             )
 
-            P1Tool::Runtime::CurrentExecution.record_event(
+            P1Tool::Adapters::ExecutionEvents.record(
               event_type: 'signature_service_signature_generated',
               metadata: {
                 reference_count: fetched_documents.size,

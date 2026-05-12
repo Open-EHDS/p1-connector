@@ -115,7 +115,7 @@ module P1Tool
           @token = body.fetch('accessToken') do
             raise P1Tool::BusinessError, "P1 token response does not include accessToken: #{body.inspect}"
           end
-          P1Tool::Runtime::CurrentExecution.record_event(
+          P1Tool::Adapters::ExecutionEvents.record(
             event_type: 'p1_access_token_acquired',
             metadata: {
               http_status: response.status,

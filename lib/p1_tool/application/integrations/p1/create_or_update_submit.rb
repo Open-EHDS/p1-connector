@@ -37,7 +37,7 @@ module P1Tool
           end
 
           def record_submission(reference_id, response)
-            P1Tool::Runtime::CurrentExecution.record_event(
+            P1Tool::Adapters::ExecutionEvents.record(
               event_type: submission_event_type,
               metadata: submission_metadata(reference_id, response)
             )

@@ -22,7 +22,7 @@ module P1Tool
                   client.create_resource(resource_type: 'Provenance', xml:)
                 end
 
-              P1Tool::Runtime::CurrentExecution.record_event(
+              P1Tool::Adapters::ExecutionEvents.record(
                 event_type: 'p1_provenance_submitted',
                 metadata: {
                   http_status: response[:status],

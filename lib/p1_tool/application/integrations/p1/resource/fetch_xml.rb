@@ -32,7 +32,7 @@ module P1Tool
             attr_reader :resource_type, :reference_id, :version_id, :client
 
             def record_event(http_status:)
-              P1Tool::Runtime::CurrentExecution.record_event(
+              P1Tool::Adapters::ExecutionEvents.record(
                 event_type: 'p1_resource_fetched',
                 metadata: {
                   http_status:,

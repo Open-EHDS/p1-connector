@@ -18,7 +18,7 @@ module P1Tool
               return found_result(found_patient) if found_patient
 
               response = client.create_resource(resource_type: 'Patient', xml: xml_builder.new(payload:).call)
-              P1Tool::Runtime::CurrentExecution.record_event(
+              P1Tool::Adapters::ExecutionEvents.record(
                 event_type: 'p1_patient_created',
                 metadata: {
                   http_status: response.fetch(:status),
@@ -52,7 +52,7 @@ module P1Tool
                   } unless resource.nil?
                 end
 
-              P1Tool::Runtime::CurrentExecution.record_event(
+              P1Tool::Adapters::ExecutionEvents.record(
                 event_type: 'p1_patient_lookup_finished',
                 metadata: {
                   http_status: response[:status],
