@@ -4,6 +4,8 @@ module P1Tool
   module Application
     module Operations
       class RegisterResource
+        include Support::ResolvesP1Client
+
         def self.call(input, config: nil, p1_client: nil)
           new(input, config:, p1_client:).call
         end
@@ -34,17 +36,6 @@ module P1Tool
 
         def patient_resolver_class
           P1Tool::Application::Integrations::P1::Patient::FindOrCreate
-        end
-
-        def resolved_p1_client(validated_payload)
-          @resolved_p1_client ||= p1_client || build_p1_client(validated_payload)
-        end
-
-        def build_p1_client(validated_payload)
-          P1Tool::Gateways::P1::ClientFactory.build(
-            config:,
-            doctor: validated_payload.fetch(:doctor)
-          )
         end
 
         def build_resource_data(validated_payload)

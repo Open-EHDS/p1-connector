@@ -4,6 +4,8 @@ module P1Tool
   module Application
     module Operations
       class RegisterProvenance
+        include Support::ResolvesP1Client
+
         def self.call(input, config: nil, p1_client: nil, signature_client: nil)
           new(input, config:, p1_client:, signature_client:).call
         end
@@ -17,19 +19,9 @@ module P1Tool
 
         def call
           validated_payload = payload_validator.validate!(payload: input.fetch(:payload), subject: subject_config)
-          signature = signature_generator_class.new(
-            payload: validated_payload,
-            config:,
-            client: resolved_p1_client(validated_payload),
-            signature_client:
-          ).call
-          provenance_data = data_builder.new(payload: validated_payload, subject: subject_config, signature:).call
-          xml = xml_builder.new(provenance_data).call
-          submission_result = submission_class.new(
-            xml:,
-            provenance_data:,
-            client: resolved_p1_client(validated_payload)
-          ).call
+          signature = generate_signature(validated_payload)
+          provenance_data = build_provenance_data(validated_payload, signature)
+          submission_result = submit_provenance(provenance_data, validated_payload)
 
           {
             resource_type: 'Provenance',
@@ -66,15 +58,25 @@ module P1Tool
           P1Tool::Application::Integrations::P1::Provenance::Submit
         end
 
-        def resolved_p1_client(validated_payload)
-          @resolved_p1_client ||= p1_client || build_p1_client(validated_payload)
+        def generate_signature(validated_payload)
+          signature_generator_class.new(
+            payload: validated_payload,
+            config:,
+            client: resolved_p1_client(validated_payload),
+            signature_client:
+          ).call
         end
 
-        def build_p1_client(validated_payload)
-          P1Tool::Gateways::P1::ClientFactory.build(
-            config:,
-            doctor: validated_payload.fetch(:doctor)
-          )
+        def build_provenance_data(validated_payload, signature)
+          data_builder.new(payload: validated_payload, subject: subject_config, signature:).call
+        end
+
+        def submit_provenance(provenance_data, validated_payload)
+          submission_class.new(
+            xml: xml_builder.new(provenance_data).call,
+            provenance_data:,
+            client: resolved_p1_client(validated_payload)
+          ).call
         end
       end
     end

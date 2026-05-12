@@ -4,6 +4,8 @@ module P1Tool
   module Application
     module Operations
       class RegisterEncounter
+        include Support::ResolvesP1Client
+
         def self.call(input, config: nil, p1_client: nil)
           new(input, config:, p1_client:).call
         end
@@ -16,21 +18,18 @@ module P1Tool
 
         def call
           validated_payload = payload_validator.validate!(payload: input.fetch(:payload), subject: subject_config)
-          encounter_data = data_builder.new(payload: validated_payload, subject: subject_config).call
-          patient_result = patient_resolver_class.new(
-            payload: validated_payload,
-            subject: subject_config,
-            client: resolved_p1_client(validated_payload)
-          ).call
-          xml = xml_builder.new(encounter_data.merge(patient_reference_id: patient_result.fetch(:patient_reference_id))).call
-          submission_result = submission_class.new(
-            xml:,
-            encounter_data:,
-            patient_result:,
-            subject: subject_config,
-            client: resolved_p1_client(validated_payload)
-          ).call
+          encounter_data = build_encounter_data(validated_payload)
+          patient_result = resolve_patient(validated_payload)
+          submission_result = submit_encounter(encounter_data, patient_result, validated_payload)
 
+          build_result(encounter_data, patient_result, submission_result)
+        end
+
+        private
+
+        attr_reader :input, :config, :p1_client
+
+        def build_result(encounter_data, patient_result, submission_result)
           {
             resource_type: 'Encounter',
             encounter_identifier: encounter_data[:encounter_identifier],
@@ -40,10 +39,6 @@ module P1Tool
             submission: submission_result
           }.compact
         end
-
-        private
-
-        attr_reader :input, :config, :p1_client
 
         def subject_config
           config.fetch(:subject)
@@ -69,15 +64,32 @@ module P1Tool
           P1Tool::Application::Integrations::P1::Encounter::Submit
         end
 
-        def resolved_p1_client(validated_payload)
-          @resolved_p1_client ||= p1_client || build_p1_client(validated_payload)
+        def build_encounter_data(validated_payload)
+          data_builder.new(payload: validated_payload, subject: subject_config).call
         end
 
-        def build_p1_client(validated_payload)
-          P1Tool::Gateways::P1::ClientFactory.build(
-            config:,
-            doctor: validated_payload.fetch(:doctor)
-          )
+        def resolve_patient(validated_payload)
+          patient_resolver_class.new(
+            payload: validated_payload,
+            subject: subject_config,
+            client: resolved_p1_client(validated_payload)
+          ).call
+        end
+
+        def build_xml(encounter_data, patient_result)
+          xml_builder.new(
+            encounter_data.merge(patient_reference_id: patient_result.fetch(:patient_reference_id))
+          ).call
+        end
+
+        def submit_encounter(encounter_data, patient_result, validated_payload)
+          submission_class.new(
+            xml: build_xml(encounter_data, patient_result),
+            encounter_data:,
+            patient_result:,
+            subject: subject_config,
+            client: resolved_p1_client(validated_payload)
+          ).call
         end
       end
     end
