@@ -3,6 +3,7 @@
 require_relative 'runtime/config_version'
 require_relative 'runtime/current_execution'
 require_relative 'runtime/execution_context'
+require_relative 'runtime/base_task_processor'
 require_relative 'runtime/task_processor'
 require_relative 'runtime/workspace'
 require_relative 'runtime/runtime_environment'
