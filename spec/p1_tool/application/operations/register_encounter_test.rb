@@ -65,6 +65,7 @@ describe P1Tool::Application::Operations::RegisterEncounter do
                 name: 'Dorota358 Leczniczy'
               },
               encounter: {
+                class_code: '4',
                 start_time: '2021-09-28T13:00:00+02:00',
                 end_time: '2021-09-28T12:30:00+02:00'
               }
@@ -76,6 +77,79 @@ describe P1Tool::Application::Operations::RegisterEncounter do
 
       assert_equal ['must include npwz or pesel'], error.details.dig(:doctor, :base)
       assert_equal ['must be greater than or equal to start_time'], error.details.dig(:encounter, :end_time)
+    end
+
+    it 'rejects payload with class_code outside PLMedicalEventClass dictionary' do
+      error = assert_raises(P1Tool::InputValidationError) do
+        operation_class.call(
+          {
+            task_id: input.fetch('task_id'),
+            operation_kind: input.fetch('operation_kind'),
+            payload: input.fetch('payload').merge(
+              'encounter' => input.fetch('payload').fetch('encounter').merge('class_code' => '999')
+            )
+          },
+          config: config
+        )
+      end
+
+      assert_equal ['is not present in PLMedicalEventClass dictionary'], error.details.dig(:encounter, :class_code)
+    end
+
+    it 'rejects payload when profession_code has no automatic medical profession mapping' do
+      error = assert_raises(P1Tool::InputValidationError) do
+        operation_class.call(
+          {
+            task_id: input.fetch('task_id'),
+            operation_kind: input.fetch('operation_kind'),
+            payload: input.fetch('payload').merge(
+              'doctor' => input.fetch('payload').fetch('doctor').merge('profession_code' => 'PROF')
+            )
+          },
+          config: config
+        )
+      end
+
+      assert_equal ['must be provided when profession_code cannot be mapped automatically'],
+                   error.details.dig(:doctor, :medical_profession_code)
+    end
+
+    it 'rejects unsupported profession_code without raising runtime error' do
+      error = assert_raises(P1Tool::InputValidationError) do
+        operation_class.call(
+          {
+            task_id: input.fetch('task_id'),
+            operation_kind: input.fetch('operation_kind'),
+            payload: input.fetch('payload').merge(
+              'doctor' => input.fetch('payload').fetch('doctor').merge('profession_code' => 'BOGUS')
+            )
+          },
+          config: config
+        )
+      end
+
+      assert_equal ['must be one of: LEK, FEL, LEKD, PIEL, POL, FARM, RAT, PROF, PADM, ASYS, FIZJO, DIAG, HIGSZKOL'],
+                   error.details.dig(:doctor, :profession_code)
+    end
+
+    it 'accepts payload with explicit medical_profession_code when profession_code is ambiguous' do
+      result = operation_class.call(
+        {
+          task_id: input.fetch('task_id'),
+          operation_kind: input.fetch('operation_kind'),
+          payload: input.fetch('payload').merge(
+            'doctor' => input.fetch('payload').fetch('doctor').merge(
+              'profession_code' => 'PROF',
+              'medical_profession_code' => '50'
+            )
+          )
+        },
+        config: config,
+        p1_client: build_fake_p1_client
+      )
+
+      assert_equal 'Encounter', result[:resource_type]
+      assert_equal 'created', result.dig(:submission, :status)
     end
   end
 end

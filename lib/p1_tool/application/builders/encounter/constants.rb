@@ -12,33 +12,32 @@ module P1Tool
           PL_PAYOR_REFERENCE_EXTENSION = 'https://ezdrowie.gov.pl/fhir/StructureDefinition/PLPayorReference'
           DEFAULT_STATUS = 'finished'
 
-          PROFESSION_NUMBERS = {
-            'LEK' => '11',
-            'LEKD' => '12',
-            'HIGSZKOL' => '7',
-            'DIAG' => '2',
-            'FIZJO' => '6'
-          }.freeze
-
-          DEFAULT_CLASS_CODES = {
-            'LEK' => { code: '4', display: 'Porada' },
-            'LEKD' => { code: '4', display: 'Porada' },
-            'HIGSZKOL' => { code: '6', display: 'Wizyta' },
-            'FIZJO' => { code: '6', display: 'Wizyta' },
-            'DIAG' => { code: '9', display: 'Badanie' }
-          }.freeze
-
           class << self
             def supported_profession_codes
-              PROFESSION_NUMBERS.keys
+              P1Tool::Application::ReferenceData::PLMedicalEventStaffRole.all_codes
             end
 
-            def profession_number_for(profession_code)
-              PROFESSION_NUMBERS[profession_code]
+            def resolve_medical_profession_code(doctor)
+              explicit_code = doctor[:medical_profession_code]
+              return explicit_code unless explicit_code.nil? || explicit_code.empty?
+
+              mapped_medical_profession_code_for(doctor.fetch(:profession_code))
             end
 
-            def default_class_for(profession_code)
-              DEFAULT_CLASS_CODES[profession_code]
+            def mapped_medical_profession_code_for(profession_code)
+              P1Tool::Application::ReferenceData::PLMedicalEventStaffRole.mapped_medical_profession_code_for(profession_code)
+            end
+
+            def supported_medical_profession_codes
+              P1Tool::Application::ReferenceData::PLMedicalProfession.codes
+            end
+
+            def encounter_class_for(class_code)
+              P1Tool::Application::ReferenceData::PLMedicalEventClass.fetch(class_code)
+            end
+
+            def supported_class_codes
+              P1Tool::Application::ReferenceData::PLMedicalEventClass.codes
             end
 
             def patient_pesel_system

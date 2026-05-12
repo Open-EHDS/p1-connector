@@ -17,8 +17,16 @@ module P1Tool
               ENCOUNTER_CONSTANTS.supported_profession_codes
             end
 
-            def profession_number_for(profession_code)
-              ENCOUNTER_CONSTANTS.profession_number_for(profession_code)
+            def mapped_medical_profession_code_for(profession_code)
+              ENCOUNTER_CONSTANTS.mapped_medical_profession_code_for(profession_code)
+            end
+
+            def resolve_medical_profession_code(doctor)
+              ENCOUNTER_CONSTANTS.resolve_medical_profession_code(doctor)
+            end
+
+            def supported_medical_profession_codes
+              ENCOUNTER_CONSTANTS.supported_medical_profession_codes
             end
 
             def patient_pesel_system

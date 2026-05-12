@@ -14,6 +14,7 @@ module P1Tool
           required(:doctor).hash do
             required(:name).filled(:string)
             required(:profession_code).filled(:string)
+            optional(:medical_profession_code).maybe(:string)
             optional(:npwz).maybe(:string)
             optional(:pesel).maybe(:string)
           end
@@ -21,7 +22,7 @@ module P1Tool
           required(:encounter).hash do
             required(:start_time).filled(:string)
             required(:end_time).filled(:string)
-            optional(:class_code).maybe(:string)
+            required(:class_code).filled(:string)
             optional(:class_name).maybe(:string)
             optional(:identifier).maybe(:string)
             optional(:episode_id).maybe(:string)

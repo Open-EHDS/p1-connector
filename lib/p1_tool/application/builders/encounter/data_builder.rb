@@ -20,7 +20,7 @@ module P1Tool
             encounter = payload.fetch(:encounter)
             doctor = payload.fetch(:doctor)
             patient = payload.fetch(:patient)
-            default_class = constants.default_class_for(doctor.fetch(:profession_code))
+            encounter_class = constants.encounter_class_for(encounter.fetch(:class_code))
             payer = build_payer
 
             {
@@ -30,14 +30,14 @@ module P1Tool
               status: encounter[:status] || constants::DEFAULT_STATUS,
               start_time: encounter.fetch(:start_time),
               end_time: encounter.fetch(:end_time),
-              class_code: encounter[:class_code] || default_class.fetch(:code),
-              class_name: encounter[:class_name] || default_class.fetch(:display),
+              class_code: encounter_class.fetch(:code),
+              class_name: encounter_class.fetch(:display),
               patient_pesel: patient.fetch(:pesel),
               patient_name: patient_name(patient),
               doctor_name: doctor.fetch(:name),
               doctor_identifier_system: doctor_identifier_system(doctor),
               doctor_identifier_value: doctor_identifier_value(doctor),
-              doctor_profession_number: constants.profession_number_for(doctor.fetch(:profession_code)),
+              doctor_profession_number: constants.resolve_medical_profession_code(doctor),
               provider_identifier_system: subject_provider_system,
               provider_identifier_value: subject.fetch(:identification_code),
               location_identifier_system: subject_location_system,

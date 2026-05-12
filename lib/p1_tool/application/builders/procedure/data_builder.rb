@@ -33,7 +33,7 @@ module P1Tool
               doctor_name: doctor.fetch(:name),
               doctor_identifier_system: doctor_identifier_system(doctor),
               doctor_identifier_value: doctor_identifier_value(doctor),
-              doctor_profession_number: constants.profession_number_for(doctor.fetch(:profession_code)),
+              doctor_profession_number: constants.resolve_medical_profession_code(doctor),
               location_identifier_system: subject_location_system,
               location_identifier_value: subject_location_value,
               element_code: element&.fetch(:code, nil),

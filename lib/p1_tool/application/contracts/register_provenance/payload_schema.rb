@@ -8,6 +8,7 @@ module P1Tool
           required(:doctor).hash do
             required(:name).filled(:string)
             required(:profession_code).filled(:string)
+            optional(:medical_profession_code).maybe(:string)
             optional(:npwz).maybe(:string)
             optional(:pesel).maybe(:string)
           end

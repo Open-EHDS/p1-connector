@@ -30,7 +30,9 @@ module P1Tool
         def apply_business_rules(validation:, normalized:, details:)
           return unless validation.success? || normalized.is_a?(Hash)
 
-          validate_doctor!(normalized_payload(validation, normalized), details)
+          normalized_payload = normalized_payload(validation, normalized)
+          validate_doctor!(normalized_payload, details)
+          validate_medical_profession_code!(normalized_payload, details) if medical_profession_code_required?
         end
 
         def validate_subject!(subject)
@@ -55,6 +57,49 @@ module P1Tool
             :doctor,
             :profession_code,
             "must be one of: #{constants.supported_profession_codes.join(', ')}"
+          )
+        end
+
+        def validate_medical_profession_code!(normalized, details)
+          doctor = normalized[:doctor]
+          return unless doctor.is_a?(Hash)
+
+          profession_code = doctor[:profession_code]
+          return if blank?(profession_code)
+          return unless constants.supported_profession_codes.include?(profession_code)
+
+          explicit_code = doctor[:medical_profession_code]
+          mapped_code = constants.mapped_medical_profession_code_for(profession_code)
+
+          if blank?(explicit_code)
+            return unless mapped_code.nil?
+
+            append_error(
+              details,
+              :doctor,
+              :medical_profession_code,
+              'must be provided when profession_code cannot be mapped automatically'
+            )
+            return
+          end
+
+          unless constants.supported_medical_profession_codes.include?(explicit_code)
+            append_error(
+              details,
+              :doctor,
+              :medical_profession_code,
+              "must be one of: #{constants.supported_medical_profession_codes.join(', ')}"
+            )
+            return
+          end
+
+          return if mapped_code.nil? || explicit_code == mapped_code
+
+          append_error(
+            details,
+            :doctor,
+            :medical_profession_code,
+            "must match profession_code mapping: #{mapped_code}"
           )
         end
 
@@ -96,6 +141,8 @@ module P1Tool
         def payload_schema
           raise NotImplementedError, "#{self.class} must implement ##{__method__}"
         end
+
+        def medical_profession_code_required? = false
 
         def validation_error_message
           raise NotImplementedError, "#{self.class} must implement ##{__method__}"

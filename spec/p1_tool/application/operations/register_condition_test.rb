@@ -98,5 +98,23 @@ describe P1Tool::Application::Operations::RegisterCondition do
       assert_equal ['must be a valid ISO8601 date time'], error.details.dig(:condition, :recorded_date)
       assert_equal ['is not present in P1 element catalog'], error.details.dig(:condition, :element_code)
     end
+
+    it 'rejects unsupported profession_code without raising runtime error' do
+      error = assert_raises(P1Tool::InputValidationError) do
+        operation_class.call(
+          {
+            task_id: input.fetch('task_id'),
+            operation_kind: input.fetch('operation_kind'),
+            payload: input.fetch('payload').merge(
+              'doctor' => input.fetch('payload').fetch('doctor').merge('profession_code' => 'BOGUS')
+            )
+          },
+          config: config
+        )
+      end
+
+      assert_equal ['must be one of: LEK, FEL, LEKD, PIEL, POL, FARM, RAT, PROF, PADM, ASYS, FIZJO, DIAG, HIGSZKOL'],
+                   error.details.dig(:doctor, :profession_code)
+    end
   end
 end

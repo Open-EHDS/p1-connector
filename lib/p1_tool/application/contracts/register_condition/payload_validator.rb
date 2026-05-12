@@ -47,6 +47,8 @@ module P1Tool
 
           def payload_schema = PayloadSchema
 
+          def medical_profession_code_required? = true
+
           def validation_error_message = 'Register condition payload validation failed'
 
           def practice_xml_name = 'condition'

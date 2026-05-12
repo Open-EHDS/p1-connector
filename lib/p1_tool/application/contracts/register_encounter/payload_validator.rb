@@ -23,13 +23,21 @@ module P1Tool
             encounter = normalized[:encounter]
             return unless encounter.is_a?(Hash)
 
-            class_presence = encounter_class_presence(encounter)
-            return if encounter_class_complete?(class_presence)
-            return if encounter_class_optional?(class_presence, normalized)
+            class_code = encounter[:class_code]
+            return if blank?(class_code)
 
-            return append_partial_encounter_class_errors(details) if encounter_class_partial?(class_presence)
+            unless constants.supported_class_codes.include?(class_code)
+              append_error(details, :encounter, :class_code, 'is not present in PLMedicalEventClass dictionary')
+              return
+            end
 
-            append_required_encounter_class_errors(details)
+            class_name = encounter[:class_name]
+            return if blank?(class_name)
+
+            expected_display = constants.encounter_class_for(class_code).fetch(:display)
+            return if class_name == expected_display
+
+            append_error(details, :encounter, :class_name, "must match class_code display: #{expected_display}")
           end
 
           def validate_payer!(normalized, details)
@@ -44,38 +52,9 @@ module P1Tool
             append_error(details, :payer, :identifier_value, 'must be provided together with identifier_system')
           end
 
-          def encounter_class_presence(encounter)
-            {
-              code: !blank?(encounter[:class_code]),
-              name: !blank?(encounter[:class_name])
-            }
-          end
-
-          def encounter_class_complete?(class_presence)
-            class_presence[:code] && class_presence[:name]
-          end
-
-          def encounter_class_optional?(class_presence, normalized)
-            !class_presence[:code] &&
-              !class_presence[:name] &&
-              !constants.default_class_for(normalized.dig(:doctor, :profession_code)).nil?
-          end
-
-          def encounter_class_partial?(class_presence)
-            class_presence[:code] != class_presence[:name]
-          end
-
-          def append_partial_encounter_class_errors(details)
-            append_error(details, :encounter, :class_code, 'must be provided together with class_name')
-            append_error(details, :encounter, :class_name, 'must be provided together with class_code')
-          end
-
-          def append_required_encounter_class_errors(details)
-            append_error(details, :encounter, :class_code, 'is required for this profession_code')
-            append_error(details, :encounter, :class_name, 'is required for this profession_code')
-          end
-
           def payload_schema = PayloadSchema
+
+          def medical_profession_code_required? = true
 
           def validation_error_message = 'Register encounter payload validation failed'
 

@@ -301,6 +301,7 @@ Przyklad:
       "name": "Dorota358 Leczniczy"
     },
     "encounter": {
+      "class_code": "4",
       "start_time": "2021-09-28T12:30:00+02:00",
       "end_time": "2021-09-28T13:00:00+02:00"
     }
