@@ -1,4 +1,4 @@
-# Integrator P1
+# p1-connector
 
 Lekki runtime Ruby do integracji plikowej z platforma P1.
 
@@ -6,7 +6,7 @@ Lekki runtime Ruby do integracji plikowej z platforma P1.
 
 To narzedzie jest przygotowywane dla integratora, ktory chce uruchamiac zadania wsadowe przekazywane jako pliki JSON i odbierac wynik w postaci pliku JSON oraz wpisow audytowych.
 
-Na obecnym etapie projekt udostepnia lokalny tryb jednorazowego wykonania `run-once` oraz tryb ciagly `watch` oparty o `Sidekiq`, `sidekiq-cron` i `Redis`.
+Na obecnym etapie projekt udostepnia lokalny tryb jednorazowego wykonania `run-once`, tryb ciagly `watch` oparty o `Sidekiq`, `sidekiq-cron` i `Redis`, komende operatorska `recover` oraz pomocniczy runner `p1-live-smoke`.
 
 ## Co dziala teraz
 
@@ -21,12 +21,19 @@ Aktualnie dostepne sa:
 - enqueue joba przetwarzajacego po atomowym przejeciu pliku `inbox -> processing`
 - minimalna polityka retry dla bledow technicznych: maksymalnie 2 proby lacznie
 - walidacja minimalnego kontraktu wejscia
-- operacja biznesowa `register_encounter`
+- operacje biznesowe:
+  - `register_encounter`
+  - `register_procedure`
+  - `register_condition`
+  - `register_provenance`
+  - `get_resource`
 - realna integracja `register_encounter` z P1:
   - pobranie tokenu
   - wyszukanie pacjenta
   - utworzenie pacjenta, jesli nie istnieje
   - utworzenie albo aktualizacja `Encounter`
+- realna integracja `register_procedure`, `register_condition` i `register_provenance` z P1
+- realna integracja z `signature-service` dla `register_provenance`
 - zapis wyniku do pliku JSON
 - zapis audytu technicznego do pliku JSON Lines
 
@@ -49,7 +56,17 @@ bundle install
 cp config/config.example.yml config/config.yml
 ```
 
-3. W razie potrzeby przygotuj zmienne srodowiskowe na podstawie `.env.example`.
+3. Opcjonalnie przygotuj lokalne zmienne srodowiskowe na podstawie `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Wazne:
+
+- `bin/p1-tool` automatycznie laduje `.env`, jesli plik istnieje
+- zanim uruchomisz `verify`, `run-once` albo `watch`, ustaw poprawne `WSS_CERT_PASSWORD` i `TLS_CERT_PASSWORD`
+- dopasuj `P1_CERTIFICATES_BASE_PATH` do miejsca, w ktorym masz certyfikaty; przykladowy `config/config.example.yml` domyslnie wskazuje `./volumes/certs`
 
 4. Jesli chcesz uruchomic Redisa przez Docker Compose:
 
@@ -57,7 +74,7 @@ cp config/config.example.yml config/config.yml
 docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-Plik `.env.example` opisuje lokalny model uruchomienia Ruby. `docker-compose.dev.yml` sluzy tylko do wystawienia Redisa.
+Plik `.env.example` opisuje lokalny model uruchomienia Ruby. `docker-compose.dev.yml` sluzy do wystawienia lokalnych uslug pomocniczych.
 
 ## Konfiguracja
 
@@ -74,6 +91,17 @@ Konfiguracja obejmuje:
 - konfiguracje P1 w sekcji `p1`
 - dane `subject`
 - konfiguracje certyfikatow `wss` i `tls`
+
+Pola wymagane przez schemat konfiguracji:
+
+- `paths.inbox`, `paths.processing`, `paths.done`, `paths.invalid`, `paths.results`, `paths.audit_log`
+- `redis.url`
+- `signature_service.url`
+- `p1.environment`
+- `subject.oid`, `subject.identification_code`, `subject.department_code_v`, `subject.department_code_vii`, `subject.is_practice`, `subject.medical_chamber`
+- `certificates.base_path`
+- `certificates.wss.filename`, `certificates.wss.password_env`
+- `certificates.tls.filename`, `certificates.tls.password_env`
 
 Wazne:
 
@@ -97,11 +125,12 @@ Wazne:
 
 ## Docker Compose
 
-W repo jest [docker-compose.dev.yml](/home/bartek/Projekty/integrator_p1/docker-compose.dev.yml) z usluga pomocnicza do developmentu.
+W repo jest [docker-compose.dev.yml](docker-compose.dev.yml) z usluga pomocnicza do developmentu.
 
 Aktualnie jest tam:
 
 - `redis` - gotowy do uzycia przez `Sidekiq`
+- `signature-tool` - lokalny `signature-service` budowany z `services/signature-tool` i wystawiony domyslnie na porcie `9093` hosta (`8080` w kontenerze)
 
 ### Redis
 
@@ -117,13 +146,18 @@ Zatrzymanie:
 docker compose -f docker-compose.dev.yml down
 ```
 
-Compose jest traktowany jako czesc narzedzia, nie tylko dodatek developerski. Testy integracyjne zakladaja, ze `redis` jest podnoszony z [docker-compose.dev.yml](/home/bartek/Projekty/integrator_p1/docker-compose.dev.yml).
+Compose jest traktowany jako czesc narzedzia, nie tylko dodatek developerski. Testy integracyjne zakladaja, ze `redis` jest podnoszony z [docker-compose.dev.yml](docker-compose.dev.yml).
 
 W MVP wspierany jest jeden sposob pracy:
 
 1. lokalny Ruby + `redis` uruchomiony z `docker compose`
 
 ## Dostepne komendy
+
+Glowne entrypointy repo:
+
+- `bin/p1-tool` - podstawowe CLI runtime
+- `bin/p1-live-smoke` - sekwencyjny smoke runner dla `Encounter`, opcjonalnie `Procedure`, `Condition` i `Provenance`
 
 ### Sprawdzenie konfiguracji
 
@@ -135,6 +169,8 @@ Komenda:
 
 - laduje konfiguracje YAML
 - waliduje wymagane pola
+- sprawdza wymagane envy z haslami do certyfikatow
+- probuje otworzyc oba pliki PKCS#12
 - zwraca kod `0`, jesli konfiguracja jest poprawna
 
 ### Przetworzenie jednego pliku
@@ -150,7 +186,7 @@ Komenda:
 
 - wczytuje plik wejsciowy JSON
 - waliduje kontrakt wejscia
-- wykonuje operacje `register_encounter`
+- wykonuje jedna z obslugiwanych operacji biznesowych
 - zapisuje wynik do wskazanego pliku
 - dopisuje wpisy audytowe do pliku audit log
 
@@ -189,6 +225,44 @@ bin/p1-tool watch \
   --sidekiq-cron-config config/sidekiq-cron.yml
 ```
 
+### Recovery
+
+```bash
+bin/p1-tool recover --config config/config.yml
+```
+
+Komenda:
+
+- laduje konfiguracje aplikacji
+- przygotowuje workspace
+- przenosi zalegle pliki z `processing` z powrotem do `inbox`
+
+### Pozostale komendy CLI
+
+```bash
+bin/p1-tool help
+bin/p1-tool version
+```
+
+### Smoke runner
+
+```bash
+bin/p1-live-smoke \
+  --config config/config.yml \
+  --input spec/fixtures/runtime/register_encounter_input.json \
+  --procedure-input spec/fixtures/runtime/register_procedure_input.json \
+  --condition-input spec/fixtures/runtime/register_condition_input.json \
+  --provenance-input spec/fixtures/runtime/register_provenance_input.json \
+  --clean
+```
+
+Runner:
+
+- uruchamia `run-once` dla `register_encounter`
+- moze potem odpalic `register_procedure`, `register_condition` i `register_provenance`
+- zapisuje artefakty do `tmp/live_smoke/...`
+- tymczasowo ustawia `P1_DEBUG_XML=1` i `P1_DEBUG_XML_PATH` na katalog artefaktow danego przebiegu
+
 ## Kontrakt wejscia
 
 Minimalny plik wejsciowy musi zawierac:
@@ -198,7 +272,13 @@ Minimalny plik wejsciowy musi zawierac:
 - `payload`
 - opcjonalnie `options`
 
-Na obecnym etapie jedyna obslugiwana wartosc `operation_kind` to `register_encounter`.
+Obslugiwane wartosci `operation_kind`:
+
+- `register_encounter`
+- `register_procedure`
+- `register_condition`
+- `register_provenance`
+- `get_resource`
 
 Przyklad:
 
@@ -260,8 +340,9 @@ Zapisywane sa zdarzenia:
 
 Obecna wersja nie udostepnia jeszcze:
 
-- integracji z realnym API `signature-service`
 - uruchamiania aplikacji Ruby przez `docker compose`
+- podstawowego HTTP API dla runtime
+- UI uzytkowego
 
 ## Szybka lokalna weryfikacja
 
@@ -274,6 +355,11 @@ bundle install
 cp config/config.example.yml config/config.yml
 cp .env.example .env
 ```
+
+Nastepnie:
+
+- ustaw `WSS_CERT_PASSWORD` i `TLS_CERT_PASSWORD`
+- dopasuj `P1_CERTIFICATES_BASE_PATH`, jesli certyfikaty nie leza pod `./volumes/certs`
 
 2. zweryfikuj konfiguracje:
 
@@ -312,7 +398,19 @@ bin/p1-tool watch \
 bin/p1-tool recover --config config/config.yml
 ```
 
-Pelna checklista testera, razem z oczekiwanymi rezultatami, scenariuszem `invalid`, recovery i sprzataniem, jest w [docs/tester-local-checklist.md](/home/bartek/Projekty/integrator_p1/docs/tester-local-checklist.md).
+Pelna checklista testera, razem z oczekiwanymi rezultatami, scenariuszem `invalid`, recovery i sprzataniem, jest w [docs/tester-local-checklist.md](docs/tester-local-checklist.md).
+
+8. opcjonalnie uruchom pelniejszy smoke flow:
+
+```bash
+bin/p1-live-smoke \
+  --config config/config.yml \
+  --input spec/fixtures/runtime/register_encounter_input.json \
+  --procedure-input spec/fixtures/runtime/register_procedure_input.json \
+  --condition-input spec/fixtures/runtime/register_condition_input.json \
+  --provenance-input spec/fixtures/runtime/register_provenance_input.json \
+  --clean
+```
 
 ## Testy
 
@@ -341,7 +439,7 @@ To oznacza, ze pelne lokalne uruchomienie testow wymaga:
 - dzialajacego Dockera
 - dostepnego `docker compose`
 
-Jesli potrzebujesz pelnej procedury manualnej, a nie tylko uruchomienia testow automatycznych, zobacz [docs/tester-local-checklist.md](/home/bartek/Projekty/integrator_p1/docs/tester-local-checklist.md).
+Jesli potrzebujesz pelnej procedury manualnej, a nie tylko uruchomienia testow automatycznych, zobacz [docs/tester-local-checklist.md](docs/tester-local-checklist.md).
 
 ## Pliki referencyjne
 
@@ -349,4 +447,3 @@ Jesli potrzebujesz pelnej procedury manualnej, a nie tylko uruchomienia testow a
 - `.env.example` - przykladowe zmienne srodowiskowe
 - `docs/tester-local-checklist.md` - pelna lokalna checklista testera
 - `plan.md` - glowny opis kierunku projektu
-- `plan-pierwszych-krokow.md` - kolejnosc prac dla pierwszego etapu

@@ -14,7 +14,7 @@ services:
 
   signature-tool:
     build:
-      context: ../signature_tool
+      context: ./services/signature-tool
     ports:
       - "${HOST_SIGNATURE_API_PORT:-9093}:8080"
     environment:
