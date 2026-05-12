@@ -103,6 +103,14 @@ module RuntimeConfigHelper
         }
       end
 
+      define_method(:destroy_resource) do |resource_type:, reference_id:|
+        {
+          status: 200,
+          body: nil,
+          headers: {}
+        }
+      end
+
       define_method(:create_resource) do |resource_type:, xml:|
         case resource_type
         when 'Patient'

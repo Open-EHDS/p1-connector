@@ -35,14 +35,18 @@ describe P1Tool::Application::LiveSmokeRunner do
 
     result_path = File.join(output_dir, 'result.json')
     debug_xml_dir = File.join(output_dir, 'debug_xml')
+    encounter_destroy_result_path = File.join(output_dir, 'encounter-destroy-result.json')
 
     assert_equal 0, exit_code
     assert_equal 'success', JSON.parse(File.read(result_path)).fetch('result_kind')
+    assert_equal 'success', JSON.parse(File.read(encounter_destroy_result_path)).fetch('result_kind')
     assert_path_exists debug_xml_dir
     assert_includes stdout.string, 'Live smoke finished'
     assert_includes stdout.string, File.expand_path(result_path)
+    assert_includes stdout.string, 'Encounter cleanup result path:'
     assert_includes stdout.string, 'Recent audit events:'
     assert_includes stdout.string, 'p1_encounter_submitted'
+    assert_includes stdout.string, 'p1_resource_destroyed'
     assert_empty stderr.string
     assert_nil ENV['P1_DEBUG_XML']
     assert_nil ENV['P1_DEBUG_XML_PATH']
@@ -151,9 +155,16 @@ describe P1Tool::Application::LiveSmokeRunner do
         }
       end
     end.new
+    client = build_fake_p1_client
+    client.instance_variable_set(:@destroy_calls, [])
+    client.define_singleton_method(:destroy_calls) { @destroy_calls }
+    client.define_singleton_method(:destroy_resource) do |resource_type:, reference_id:|
+      @destroy_calls << [resource_type, reference_id]
+      { status: 200, body: nil, headers: {} }
+    end
 
     exit_code = with_stubbed_pkcs12_validation do
-      with_fake_p1_client_factory do
+      with_fake_p1_client_factory(client) do
         with_singleton_stub(P1Tool::Gateways::SignatureService::Client, :new, ->(base_url:) { signature_client }) do
           P1Tool::Application::LiveSmokeRunner.start(
             [
@@ -176,6 +187,7 @@ describe P1Tool::Application::LiveSmokeRunner do
     provenance_result_path = File.join(output_dir, 'provenance-result.json')
     resolved_provenance_input_path = File.join(output_dir, 'provenance-input.resolved.json')
     resolved_references = JSON.parse(File.read(resolved_provenance_input_path)).fetch('payload').fetch('references')
+    destroy_calls = client.destroy_calls
 
     assert_equal 0, exit_code
     assert_equal 'success', JSON.parse(File.read(provenance_result_path)).fetch('result_kind')
@@ -207,7 +219,17 @@ describe P1Tool::Application::LiveSmokeRunner do
         content: '<Condition id="stub-condition-1" version="1"/>'
       }
     ], signature_client.documents
+    assert_equal [
+      ['Provenance', 'stub-provenance-1'],
+      ['Condition', 'stub-condition-1'],
+      ['Procedure', 'stub-procedure-1'],
+      ['Encounter', 'stub-encounter-1']
+    ], destroy_calls
     assert_includes stdout.string, 'Provenance result path:'
+    assert_includes stdout.string, 'Provenance cleanup result path:'
+    assert_includes stdout.string, 'Condition cleanup result path:'
+    assert_includes stdout.string, 'Procedure cleanup result path:'
+    assert_includes stdout.string, 'Encounter cleanup result path:'
     assert_includes stdout.string, 'p1_provenance_submitted'
     assert_empty stderr.string
   end

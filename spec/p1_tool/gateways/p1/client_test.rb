@@ -41,7 +41,8 @@ describe P1Tool::Gateways::P1::Client do
           1 => token_response,
           2 => patient_response,
           3 => encounter_response,
-          4 => encounter_xml_response
+          4 => encounter_xml_response,
+          5 => destroy_response
         }[@calls]
       end
 
@@ -70,6 +71,14 @@ describe P1Tool::Gateways::P1::Client do
           status: 200,
           headers: { 'Content-Type' => 'application/fhir+xml' },
           body: '<Encounter id="261728421645691904" version="1"/>'
+        )
+      end
+
+      def destroy_response
+        response_class.new(
+          status: 200,
+          headers: {},
+          body: ''
         )
       end
 
@@ -114,6 +123,7 @@ describe P1Tool::Gateways::P1::Client do
     patient_response = nil
     encounter_response = nil
     encounter_xml_response = nil
+    destroy_response = nil
 
     P1Tool::Runtime::CurrentExecution.with(context:, audit_log:) do
       patient_response = client.find_patient(payload:)
@@ -122,6 +132,10 @@ describe P1Tool::Gateways::P1::Client do
         resource_type: 'Encounter',
         reference_id: '261728421645691904',
         version_id: '1'
+      )
+      destroy_response = client.destroy_resource(
+        resource_type: 'Condition',
+        reference_id: '261728421645691905'
       )
     end
 
@@ -140,6 +154,10 @@ describe P1Tool::Gateways::P1::Client do
     assert_equal 'application/fhir+xml', transport.requests[3].dig(:headers, 'Accept')
     assert_equal 'fhir/Encounter/261728421645691904/_history/1', transport.requests[3][:path]
     assert_equal '<Encounter id="261728421645691904" version="1"/>', encounter_xml_response[:body]
+    assert_equal :delete, transport.requests[4][:method]
+    assert_equal 'fhir/Condition/261728421645691905', transport.requests[4][:path]
+    assert_equal 'Bearer replay-access-token', transport.requests[4].dig(:headers, 'Authorization')
+    assert_equal 200, destroy_response[:status]
   end
 
   it 'raises business error with parsed response body details on non-success response' do

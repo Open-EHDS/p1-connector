@@ -58,8 +58,17 @@ module P1Tool
           procedure_step:,
           condition_step:
         )
+        cleanup_steps = run_cleanup_steps(
+          options:,
+          run_dir:,
+          debug_xml_dir:,
+          encounter_result_payload:,
+          procedure_step:,
+          condition_step:,
+          provenance_step:
+        )
 
-        exit_code = overall_exit_code(exit_code, procedure_step, condition_step, provenance_step)
+        exit_code = overall_exit_code(exit_code, procedure_step, condition_step, provenance_step, *cleanup_steps)
 
         print_summary(
           config:,
@@ -73,7 +82,8 @@ module P1Tool
           encounter_result_payload:,
           procedure_step:,
           condition_step:,
-          provenance_step:
+          provenance_step:,
+          cleanup_steps:
         )
 
         exit_code
@@ -313,6 +323,123 @@ module P1Tool
         true
       end
 
+      def run_cleanup_steps(options:, run_dir:, debug_xml_dir:, encounter_result_payload:, procedure_step:, condition_step:, provenance_step:)
+        cleanup_plan(
+          options:,
+          encounter_result_payload:,
+          procedure_step:,
+          condition_step:,
+          provenance_step:
+        ).map do |cleanup_target|
+          run_cleanup_step(
+            cleanup_target:,
+            config_path: options[:config_path],
+            run_dir:,
+            debug_xml_dir:
+          )
+        end
+      end
+
+      def cleanup_plan(options:, encounter_result_payload:, procedure_step:, condition_step:, provenance_step:)
+        [
+          build_cleanup_target(
+            resource_type: 'Provenance',
+            source_input_path: provenance_step[:resolved_input_path] || options[:provenance_input_path],
+            result_payload: provenance_step[:result_payload],
+            step_name: 'provenance'
+          ),
+          build_cleanup_target(
+            resource_type: 'Condition',
+            source_input_path: condition_step[:resolved_input_path] || options[:condition_input_path],
+            result_payload: condition_step[:result_payload],
+            step_name: 'condition'
+          ),
+          build_cleanup_target(
+            resource_type: 'Procedure',
+            source_input_path: procedure_step[:resolved_input_path] || options[:procedure_input_path],
+            result_payload: procedure_step[:result_payload],
+            step_name: 'procedure'
+          ),
+          build_cleanup_target(
+            resource_type: 'Encounter',
+            source_input_path: options[:input_path],
+            result_payload: encounter_result_payload,
+            step_name: 'encounter'
+          )
+        ].compact
+      end
+
+      def build_cleanup_target(resource_type:, source_input_path:, result_payload:, step_name:)
+        return nil unless successful_submission_result?(result_payload)
+
+        reference_id = result_payload.dig('details', 'submission', 'reference_id')
+        raise "#{resource_type} smoke did not produce submission.reference_id required for cleanup step" if blank?(reference_id)
+
+        {
+          resource_type:,
+          reference_id:,
+          source_input_path:,
+          step_name:
+        }
+      end
+
+      def successful_submission_result?(result_payload)
+        return false unless result_payload.is_a?(Hash)
+        return false unless result_payload['result_kind'] == 'success'
+
+        !blank?(result_payload.dig('details', 'submission', 'reference_id'))
+      end
+
+      def run_cleanup_step(cleanup_target:, config_path:, run_dir:, debug_xml_dir:)
+        input_payload = read_json_file(cleanup_target.fetch(:source_input_path))
+        source_input_path = cleanup_target.fetch(:source_input_path)
+        step_name = cleanup_target.fetch(:step_name)
+        resource_type = cleanup_target.fetch(:resource_type)
+        reference_id = cleanup_target.fetch(:reference_id)
+
+        raise "#{step_name.capitalize} cleanup source file is invalid JSON: #{source_input_path}" if input_payload.nil?
+
+        destroy_input_payload = build_destroy_input(
+          input_payload:,
+          resource_type:,
+          reference_id:
+        )
+        destroy_input_path = File.join(run_dir, "#{step_name}-destroy-input.json")
+        destroy_output_path = File.join(run_dir, "#{step_name}-destroy-result.json")
+
+        write_json_file(destroy_input_path, destroy_input_payload)
+        exit_code = run_once(config_path, destroy_input_path, destroy_output_path, debug_xml_dir)
+
+        {
+          ran: true,
+          step_name:,
+          resource_type:,
+          reference_id:,
+          exit_code:,
+          source_input_path:,
+          input_path: destroy_input_path,
+          output_path: destroy_output_path,
+          result_payload: read_json_file(destroy_output_path)
+        }
+      end
+
+      def build_destroy_input(input_payload:, resource_type:, reference_id:)
+        doctor_payload = deep_copy(input_payload.fetch('payload').fetch('doctor'))
+        task_id = input_payload['task_id'] || input_payload.dig('payload', 'task_id') || 'live-smoke'
+
+        {
+          'task_id' => "#{task_id}-destroy-#{resource_type.downcase}",
+          'operation_kind' => 'destroy_resource',
+          'payload' => {
+            'doctor' => doctor_payload,
+            'resource' => {
+              'resource_type' => resource_type,
+              'resource_id' => reference_id
+            }
+          }
+        }
+      end
+
       def overall_exit_code(encounter_exit_code, *steps)
         return encounter_exit_code unless encounter_exit_code.zero?
 
@@ -331,7 +458,7 @@ module P1Tool
         File.write(path, JSON.pretty_generate(payload) + "\n")
       end
 
-      def print_summary(config:, config_path:, input_path:, output_path:, run_dir:, debug_xml_dir:, exit_code:, audit_tail:, encounter_result_payload:, procedure_step:, condition_step:, provenance_step:)
+      def print_summary(config:, config_path:, input_path:, output_path:, run_dir:, debug_xml_dir:, exit_code:, audit_tail:, encounter_result_payload:, procedure_step:, condition_step:, provenance_step:, cleanup_steps:)
         encounter_transport_id = encounter_result_payload&.fetch('transport_id', nil)
 
         print_lines(
@@ -357,6 +484,7 @@ module P1Tool
         print_procedure_step_summary(config:, procedure_step:, audit_tail:)
         print_condition_step_summary(config:, condition_step:, audit_tail:)
         print_provenance_step_summary(config:, provenance_step:, audit_tail:)
+        print_cleanup_steps_summary(config:, cleanup_steps:, audit_tail:)
       end
 
       def print_procedure_step_summary(config:, procedure_step:, audit_tail:)
@@ -435,6 +563,28 @@ module P1Tool
           transport_id:,
           limit: audit_tail
         )
+      end
+
+      def print_cleanup_steps_summary(config:, cleanup_steps:, audit_tail:)
+        cleanup_steps.each do |cleanup_step|
+          result_payload = cleanup_step[:result_payload]
+          transport_id = result_payload&.fetch('transport_id', nil)
+          step_name = cleanup_step.fetch(:step_name).capitalize
+
+          print_lines(
+            "#{step_name} cleanup input path: #{cleanup_step[:input_path]}",
+            "#{step_name} cleanup result path: #{cleanup_step[:output_path]}",
+            "#{step_name} cleanup transport ID: #{transport_id || 'n/a'}",
+            "#{step_name} cleanup result kind: #{result_payload&.fetch('result_kind', nil) || 'n/a'}"
+          )
+
+          print_step_audit(
+            title: "Recent #{cleanup_step.fetch(:step_name)} cleanup audit events:",
+            path: config.dig(:paths, :audit_log),
+            transport_id:,
+            limit: audit_tail
+          )
+        end
       end
 
       def print_step_audit(title:, path:, transport_id:, limit:)

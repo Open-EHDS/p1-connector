@@ -65,6 +65,21 @@ module P1Tool
           }
         end
 
+        def destroy_resource(resource_type:, reference_id:)
+          response = transport.request(
+            method: :delete,
+            path: resource_path(resource_type:, reference_id:),
+            headers: token_headers
+          )
+          handle_response!(response, expected_statuses: [200], context: "delete #{resource_type} #{reference_id}")
+
+          {
+            status: response.status,
+            body: parse_body(response.body),
+            headers: response.headers
+          }
+        end
+
         def find_patient(payload:)
           patient = payload.fetch(:patient)
           response = transport.request(

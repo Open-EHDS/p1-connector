@@ -1,0 +1,15 @@
+{
+  "task_id": "destroy-resource-task-1",
+  "operation_kind": "destroy_resource",
+  "payload": {
+    "doctor": {
+      "npwz": "5691489",
+      "profession_code": "LEK",
+      "name": "Adam739 Leczniczy"
+    },
+    "resource": {
+      "resource_type": "Condition",
+      "resource_id": "cond-123"
+    }
+  }
+}

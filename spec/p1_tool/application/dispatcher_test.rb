@@ -116,6 +116,35 @@ describe P1Tool::Application::Dispatcher do
       end
     end
 
+    {
+      'Encounter' => 'enc-123',
+      'Procedure' => 'proc-123',
+      'Condition' => 'cond-123',
+      'Provenance' => 'prov-123'
+    }.each do |resource_type, reference_id|
+      it "invokes destroy_resource for #{resource_type}" do
+        result = with_fake_p1_client_factory do
+          P1Tool::Application::Dispatcher.call_with_config(
+            {
+              task_id: "task-destroy-resource-#{resource_type.downcase}-1",
+              operation_kind: 'destroy_resource',
+              payload: fixture_json('runtime', 'destroy_resource_input.json').fetch('payload').merge(
+                'resource' => {
+                  'resource_type' => resource_type,
+                  'resource_id' => reference_id
+                }
+              )
+            },
+            config: config
+          )
+        end
+
+        assert_equal resource_type, result[:resource_type]
+        assert_equal reference_id, result[:reference_id]
+        assert_equal 200, result[:response_status]
+      end
+    end
+
     it 'rejects unsupported operation_kind' do
       error = assert_raises(P1Tool::InputValidationError) do
         P1Tool::Application::Dispatcher.call(
@@ -125,7 +154,7 @@ describe P1Tool::Application::Dispatcher do
         )
       end
 
-      assert_equal ['must be one of: register_encounter, register_procedure, register_condition, register_provenance, get_resource'],
+      assert_equal ['must be one of: register_encounter, register_procedure, register_condition, register_provenance, get_resource, destroy_resource'],
                    error.details[:operation_kind]
     end
   end

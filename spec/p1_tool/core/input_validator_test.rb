@@ -30,7 +30,7 @@ describe P1Tool::Core::InputValidator do
         )
       end
 
-      assert_equal ['must be one of: register_encounter, register_procedure, register_condition, register_provenance, get_resource'],
+      assert_equal ['must be one of: register_encounter, register_procedure, register_condition, register_provenance, get_resource, destroy_resource'],
                    error.details[:operation_kind]
     end
 

@@ -27,6 +27,7 @@ Aktualnie dostepne sa:
   - `register_condition`
   - `register_provenance`
   - `get_resource`
+  - `destroy_resource`
 - realna integracja `register_encounter` z P1:
   - pobranie tokenu
   - wyszukanie pacjenta
@@ -260,6 +261,7 @@ Runner:
 
 - uruchamia `run-once` dla `register_encounter`
 - moze potem odpalic `register_procedure`, `register_condition` i `register_provenance`
+- po wykonaniu probuje usunac utworzone zasoby w odwrotnej kolejnosci: `Provenance`, `Condition`, `Procedure`, `Encounter`
 - zapisuje artefakty do `tmp/live_smoke/...`
 - tymczasowo ustawia `P1_DEBUG_XML=1` i `P1_DEBUG_XML_PATH` na katalog artefaktow danego przebiegu
 
@@ -279,6 +281,7 @@ Obslugiwane wartosci `operation_kind`:
 - `register_condition`
 - `register_provenance`
 - `get_resource`
+- `destroy_resource`
 
 Przyklad:
 

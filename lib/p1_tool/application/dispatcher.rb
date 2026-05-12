@@ -8,7 +8,8 @@ module P1Tool
         'register_procedure' => Operations::RegisterProcedure,
         'register_condition' => Operations::RegisterCondition,
         'register_provenance' => Operations::RegisterProvenance,
-        'get_resource' => Operations::GetResource
+        'get_resource' => Operations::GetResource,
+        'destroy_resource' => Operations::DestroyResource
       }.freeze
 
       def self.call(input)
