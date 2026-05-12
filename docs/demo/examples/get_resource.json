@@ -1,0 +1,16 @@
+{
+  "task_id": "get-resource-task-1",
+  "operation_kind": "get_resource",
+  "payload": {
+    "doctor": {
+      "npwz": "5691489",
+      "profession_code": "LEK",
+      "name": "Adam739 Leczniczy"
+    },
+    "resource": {
+      "resource_type": "Patient",
+      "resource_id": "VALID_RESOURCE_ID",
+      "version_id": "VALID_RESOURCE_VERSION_ID"
+    }
+  }
+}

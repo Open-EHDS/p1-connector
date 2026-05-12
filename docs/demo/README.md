@@ -13,9 +13,6 @@ Aktualnie dostepne:
 - [register_encounter](register_encounter.md)
 - [register_procedure](register_procedure.md)
 - [register_condition](register_condition.md)
-
-Planowane kolejne rozdzialy:
-
-- `register_provenance`
-- `get_resource`
-- `destroy_resource`
+- [register_provenance](register_provenance.md)
+- [get_resource](get_resource.md)
+- [destroy_resource](destroy_resource.md)
