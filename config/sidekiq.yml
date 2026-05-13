@@ -2,3 +2,4 @@ concurrency: 5
 queues:
   - continuous
 average_scheduled_poll_interval: 5
+cron_poll_interval: 5

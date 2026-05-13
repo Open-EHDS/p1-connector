@@ -54,4 +54,28 @@ describe P1Tool::Runtime::ContinuousRunner do
     assert recovery_called
     assert embedded_run_called
   end
+
+  it 'applies sidekiq and sidekiq-cron polling configuration' do
+    config = Struct.new(:redis, :concurrency, :queues, :average_scheduled_poll_interval).new
+    sidekiq_config = {
+      'concurrency' => 2,
+      'queues' => ['continuous'],
+      'average_scheduled_poll_interval' => 4,
+      'cron_poll_interval' => 5
+    }
+    original_cron_poll_interval = Sidekiq::Cron.configuration.cron_poll_interval
+
+    runner = runner_class.new(config_path:, stdout:)
+    runner.send(:apply_sidekiq_config, config, sidekiq_config, redis_url: 'redis://redis:6379/0')
+
+    assert_equal({ url: 'redis://redis:6379/0' }, config.redis)
+    assert_equal 2, config.concurrency
+    assert_equal ['continuous'], config.queues
+    assert_equal 4, config.average_scheduled_poll_interval
+    assert_equal 5, Sidekiq::Cron.configuration.cron_poll_interval
+  ensure
+    Sidekiq::Cron.configure do |cron_config|
+      cron_config.cron_poll_interval = original_cron_poll_interval
+    end
+  end
 end

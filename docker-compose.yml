@@ -1,1 +1,68 @@
-docker-compose.dev.yml
+services:
+  p1-connector:
+    build:
+      context: .
+    image: p1-connector:local
+    init: true
+    user: "${P1_CONNECTOR_UID:-1000}:${P1_CONNECTOR_GID:-1000}"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      P1_DATA_ROOT: /data
+      P1_LOGS_ROOT: /logs
+      P1_CERTIFICATES_BASE_PATH: /certs
+      P1_INBOX_PATH: /data/inbox
+      P1_PROCESSING_PATH: /data/processing
+      P1_DONE_PATH: /data/done
+      P1_INVALID_PATH: /data/invalid
+      P1_RESULTS_PATH: /data/results
+      P1_AUDIT_LOG_PATH: /logs/audit.jsonl
+      REDIS_URL: redis://redis:6379/0
+      SIGNATURE_SERVICE_URL: http://signature-tool:8080
+      P1_ENVIRONMENT: ${P1_ENVIRONMENT:-integration}
+      WSS_CERT_PASSWORD: ${WSS_CERT_PASSWORD:-}
+      TLS_CERT_PASSWORD: ${TLS_CERT_PASSWORD:-}
+    volumes:
+      - .:/app
+      - ${P1_HOST_DATA_ROOT:-./var/data}:/data
+      - ${P1_HOST_LOGS_ROOT:-./var/logs}:/logs
+      - ${P1_HOST_CERTIFICATES_PATH:-./volumes/certs}:/certs:ro
+    command:
+      - watch
+      - --config
+      - config/config.yml
+      - --sidekiq-config
+      - config/sidekiq.yml
+      - --sidekiq-cron-config
+      - config/sidekiq-cron.yml
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "${HOST_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  signature-tool:
+    profiles:
+      - signature
+    build:
+      context: ./services/signature-tool
+    ports:
+      - "${HOST_SIGNATURE_API_PORT:-9093}:8080"
+    environment:
+      SIGNATURE_TOOL_SIGNING_CERTIFICATE_PATH: /certs/wss.p12
+      SIGNATURE_TOOL_SIGNING_PASSWORD: ${SIGNATURE_TOOL_SIGNING_PASSWORD:-}
+    volumes:
+      - ${P1_HOST_CERTIFICATES_PATH:-./volumes/certs}:/certs:ro
+
+volumes:
+  redis-data:

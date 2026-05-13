@@ -40,11 +40,10 @@ Aktualnie dostepne sa:
 
 ## Wymagania
 
-- Ruby `3.4.9`
-- Bundler
-- Docker i `docker compose` do lokalnego Redisa, trybu `watch` i testu integracyjnego
+- Docker i `docker compose` dla domyslnego uruchomienia bez lokalnego Ruby
+- Ruby `3.4.9` i Bundler tylko dla wariantu z lokalnym Ruby
 
-## Przygotowanie
+## Przygotowanie dla lokalnego Ruby
 
 1. Zainstaluj zaleznosci:
 
@@ -71,13 +70,13 @@ Wazne:
 - `recover` nie wymaga hasel do certyfikatow ani dostepu do P1; laduje konfiguracje bez walidacji runtime
 - dopasuj `P1_CERTIFICATES_BASE_PATH` do miejsca, w ktorym masz certyfikaty; przykladowy `config/config.example.yml` domyslnie wskazuje `./volumes/certs`
 
-4. Jesli chcesz uruchomic Redisa przez Docker Compose:
+4. Jesli chcesz uruchomic Redisa przez Compose dla lokalnego Ruby:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-Plik `.env.example` opisuje lokalny model uruchomienia Ruby. `docker-compose.dev.yml` sluzy do wystawienia lokalnych uslug pomocniczych.
+Plik `.env.example` opisuje lokalny model uruchomienia Ruby. `docker-compose.dev.yml` sluzy tylko do wystawienia lokalnych uslug pomocniczych.
 
 ## Konfiguracja
 
@@ -129,16 +128,90 @@ Wazne:
 
 ## Docker Compose
 
-W repo jest [docker-compose.dev.yml](docker-compose.dev.yml) z usluga pomocnicza do developmentu.
+W repo sa dwa warianty Compose:
 
-Aktualnie jest tam:
+- [docker-compose.yml](docker-compose.yml) - domyslny wariant bez lokalnego Ruby, z usluga `p1-connector`
+- [docker-compose.dev.yml](docker-compose.dev.yml) - uslugi pomocnicze dla pracy z lokalnym Ruby
 
+Domyslny [docker-compose.yml](docker-compose.yml) zawiera:
+
+- `p1-connector` - obraz Ruby z aplikacja, domyslnie uruchamia `watch`
 - `redis` - gotowy do uzycia przez `Sidekiq`
-- `signature-tool` - lokalny `signature-service` budowany z `services/signature-tool` i wystawiony domyslnie na porcie `9093` hosta (`8080` w kontenerze)
+- `signature-tool` - opcjonalny lokalny `signature-service` pod profilem `signature`
+
+W trybie kontenerowym aplikacja uzywa sciezek wewnatrz kontenera:
+
+- dane: `/data`
+- logi: `/logs`
+- certyfikaty: `/certs`
+- Redis: `redis://redis:6379/0`
+
+Hostowe katalogi montowane do kontenera ustawia sie przez `.env.compose`.
+
+Przygotowanie:
+
+```bash
+cp config/config.example.yml config/config.yml
+cp .env.compose.example .env.compose
+```
+
+W `.env.compose` ustaw przede wszystkim:
+
+- `P1_HOST_CERTIFICATES_PATH`
+- `WSS_CERT_PASSWORD`
+- `TLS_CERT_PASSWORD`
+
+Budowanie obrazu:
+
+```bash
+docker compose --env-file .env.compose build p1-connector
+```
+
+Sprawdzenie konfiguracji:
+
+```bash
+docker compose --env-file .env.compose run --rm -T p1-connector \
+  verify --config config/config.yml
+```
+
+Przetworzenie jednego pliku:
+
+```bash
+docker compose --env-file .env.compose run --rm -T p1-connector \
+  run-once \
+  --config config/config.yml \
+  --input spec/fixtures/runtime/register_encounter_input.json \
+  --output /data/manual-output.json
+```
+
+Tryb ciagly:
+
+```bash
+docker compose --env-file .env.compose up p1-connector
+```
+
+W drugim terminalu wrzuc plik do hostowego katalogu danych:
+
+```bash
+cp spec/fixtures/runtime/register_encounter_input.json var/data/inbox/task-1.json
+```
+
+Testy w kontenerze:
+
+```bash
+docker compose --env-file .env.compose run --rm -T --entrypoint bundle p1-connector \
+  exec rake test
+```
+
+Jesli chcesz uruchomic lokalny `signature-tool` dla `register_provenance`, dodaj profil:
+
+```bash
+docker compose --env-file .env.compose --profile signature up p1-connector signature-tool
+```
 
 ### Redis
 
-Start tylko Redisa:
+Start tylko Redisa dla lokalnego Ruby:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
@@ -150,11 +223,12 @@ Zatrzymanie:
 docker compose -f docker-compose.dev.yml down
 ```
 
-Compose jest traktowany jako czesc narzedzia, nie tylko dodatek developerski. Testy integracyjne zakladaja, ze `redis` jest podnoszony z [docker-compose.dev.yml](docker-compose.dev.yml).
+Testy integracyjne uruchamiane z lokalnego Ruby zakladaja, ze `redis` jest podnoszony z [docker-compose.dev.yml](docker-compose.dev.yml).
 
-W MVP wspierany jest jeden sposob pracy:
+W MVP wspierane sa dwa sposoby pracy:
 
-1. lokalny Ruby + `redis` uruchomiony z `docker compose`
+1. domyslny `docker compose` z usluga `p1-connector`
+2. lokalny Ruby + `redis` uruchomiony z `docker-compose.dev.yml`
 
 ## Dostepne komendy
 
@@ -216,6 +290,7 @@ Tryb `watch`:
 - bootstrappuje konfiguracje raz na proces
 - laczy `Sidekiq` z `redis.url` z konfiguracji aplikacji
 - skanuje `inbox` zgodnie z harmonogramem `sidekiq-cron`
+- sprawdza harmonogram `sidekiq-cron` z interwalem `cron_poll_interval` z `config/sidekiq.yml`
 - przetwarza pliki z `processing`
 - przenosi pliki do `done` albo `invalid`
 - wykonuje jedno retry dla bledow technicznych i przejsciowych
@@ -334,11 +409,10 @@ Zapisywane sa zdarzenia:
 
 Obecna wersja nie udostepnia jeszcze:
 
-- uruchamiania aplikacji Ruby przez `docker compose`
 - podstawowego HTTP API dla runtime
 - UI uzytkowego
 
-## Lokalne uruchomienie i weryfikacja krok po kroku
+## Lokalne uruchomienie z Ruby krok po kroku
 
 Ta procedura jest podstawowa sciezka sprawdzenia aplikacji po lokalnym przygotowaniu konfiguracji.
 Scenariusze wykonuj na srodowisku `integration`, z poprawnymi certyfikatami WSS/TLS i haslami w envach wskazanych w `config/config.yml`.
@@ -529,4 +603,5 @@ Pelne lokalne uruchomienie z wykonanym testem integracyjnym wymaga:
 
 - `config/config.example.yml` - przykladowa konfiguracja
 - `.env.example` - przykladowe zmienne srodowiskowe
+- `.env.compose.example` - przykladowe zmienne dla domyslnego uruchomienia przez Docker Compose
 - `plan.md` - glowny opis kierunku projektu

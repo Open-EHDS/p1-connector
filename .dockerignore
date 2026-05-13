@@ -1,24 +1,24 @@
 .bundle/
 .codex
-.agent-local.md
+.git/
 .idea/
 .env
-.env.compose
-vendor/bundle/
+.env.*
+!.env.example
+!.env.compose.example
 
 config/config.yml
-
 coverage/
 log/
-tmp/*
-!tmp/.keep
+tmp/
 var/
+volume/
+volumes/
+vendor/bundle/
 
+*.docx
 *.log
 *.pid
 *.seed
 *.swp
 *.swo
-
-.DS_Store
-/volumes/

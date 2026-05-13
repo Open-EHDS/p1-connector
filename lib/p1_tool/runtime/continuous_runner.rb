@@ -76,6 +76,13 @@ module P1Tool
 
         poll_interval = sidekiq_config['average_scheduled_poll_interval']
         config.average_scheduled_poll_interval = poll_interval if poll_interval
+
+        cron_poll_interval = sidekiq_config['cron_poll_interval']
+        return unless cron_poll_interval
+
+        Sidekiq::Cron.configure do |cron_config|
+          cron_config.cron_poll_interval = cron_poll_interval
+        end
       end
 
       def install_signal_handlers(embedded)
