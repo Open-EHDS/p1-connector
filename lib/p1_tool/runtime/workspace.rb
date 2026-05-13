@@ -12,6 +12,8 @@ module P1Tool
         @file_system = file_system
       end
 
+      attr_reader :file_system
+
       def prepare!
         directory_paths.each_value { |path| @file_system.mkdir_p(path) }
       end

@@ -16,6 +16,7 @@ describe P1Tool::Runtime::RuntimeEnvironment do
     runtime_environment.bootstrap!(config:)
 
     assert_equal config, runtime_environment.config
+    assert_instance_of P1Tool::Adapters::FileSystem, runtime_environment.file_system
     assert_path_exists runtime_environment.workspace.path_for(:inbox)
     assert_equal config.dig(:paths, :audit_log), runtime_environment.audit_log.instance_variable_get(:@path)
   end

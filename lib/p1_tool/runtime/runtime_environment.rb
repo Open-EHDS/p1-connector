@@ -29,6 +29,7 @@ module P1Tool
           @state = {
             config: config,
             workspace: workspace,
+            file_system: file_system,
             audit_log: audit_log,
             clock: clock,
             transport_id_generator: transport_id_generator
@@ -45,6 +46,10 @@ module P1Tool
 
         def audit_log
           fetch(:audit_log)
+        end
+
+        def file_system
+          fetch(:file_system)
         end
 
         def clock

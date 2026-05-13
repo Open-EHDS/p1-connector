@@ -10,6 +10,20 @@ module P1Tool
         FileUtils.mkdir_p(path)
       end
 
+      def read(path)
+        File.read(path)
+      end
+
+      def append_line(path, line)
+        mkdir_p(File.dirname(path))
+
+        File.open(path, 'a') do |file|
+          file.puts(line)
+        end
+
+        path
+      end
+
       def regular_files(path)
         Dir.children(path).sort.filter_map do |entry|
           file_path = File.join(path, entry)
@@ -18,6 +32,7 @@ module P1Tool
       end
 
       def atomic_move(source_path, destination_path)
+        mkdir_p(File.dirname(destination_path))
         File.rename(source_path, destination_path)
         destination_path
       rescue Errno::ENOENT

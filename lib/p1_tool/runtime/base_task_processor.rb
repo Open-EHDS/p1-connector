@@ -37,7 +37,7 @@ module P1Tool
       end
 
       def parse_input_file
-        JSON.parse(File.read(source_path))
+        JSON.parse(file_system.read(source_path))
       end
 
       def process_input(context, started_at)
@@ -219,6 +219,10 @@ module P1Tool
       end
 
       def audit_log
+        raise NotImplementedError, "#{self.class} must implement ##{__method__}"
+      end
+
+      def file_system
         raise NotImplementedError, "#{self.class} must implement ##{__method__}"
       end
 

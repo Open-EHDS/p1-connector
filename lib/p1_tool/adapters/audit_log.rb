@@ -57,11 +57,7 @@ module P1Tool
                 .merge(context.to_h)
                 .merge(compact_hash(attributes))
 
-        @file_system.mkdir_p(File.dirname(@path))
-
-        File.open(@path, 'a') do |file|
-          file.puts(JSON.generate(entry))
-        end
+        @file_system.append_line(@path, JSON.generate(entry))
 
         entry
       end

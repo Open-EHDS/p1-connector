@@ -4,7 +4,8 @@ module P1Tool
   module Runtime
     class TaskProcessor < BaseTaskProcessor
       # rubocop:disable Lint/MissingSuper
-      def initialize(config,
+      def initialize(
+        config,
         input_path:,
         output_path:,
         audit_log: nil,
@@ -25,7 +26,7 @@ module P1Tool
 
       private
 
-      attr_reader :config, :source_path, :runtime_mode, :audit_log, :clock, :transport_id_generator
+      attr_reader :config, :source_path, :runtime_mode, :audit_log, :file_system, :clock, :transport_id_generator
 
       def start_metadata
         { output_path: @output_path }

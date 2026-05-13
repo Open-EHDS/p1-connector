@@ -10,6 +10,7 @@ module P1Tool
         @source_path = @processing_path
         @runtime_mode = 'watch'
         @workspace = runtime_dependency(runtime, :workspace) { P1Tool::Runtime::RuntimeEnvironment.workspace }
+        @file_system = runtime_dependency(runtime, :file_system) { @workspace.file_system }
         @clock = runtime_dependency(runtime, :clock) { P1Tool::Runtime::RuntimeEnvironment.clock }
         @transport_id_generator = runtime_dependency(runtime, :transport_id_generator) do
           P1Tool::Runtime::RuntimeEnvironment.transport_id_generator
@@ -23,7 +24,7 @@ module P1Tool
       private
 
       attr_reader :config, :source_path, :runtime_mode, :audit_log, :clock, :transport_id_generator, :attempt,
-                  :correlation_id
+                  :correlation_id, :file_system
 
       def start_metadata
         { source_path: @processing_path }

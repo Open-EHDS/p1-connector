@@ -109,6 +109,7 @@ Wazne:
 
 - dla trybu `run-once` wynik jest zapisywany pod sciezka przekazana parametrem `--output`
 - plik audytowy jest zapisywany pod sciezka `paths.audit_log` z konfiguracji
+- katalogi robocze `inbox`, `processing`, `done`, `invalid` i `results` musza znajdowac sie na tym samym filesystemie; runtime przenosi pliki przez atomowe `rename`
 - debugowe XML-e moga byc zapisywane po ustawieniu `P1_DEBUG_XML=1`; katalog mozna nadpisac przez `P1_DEBUG_XML_PATH`
 - `p1.environment` przelacza host docelowy:
   - `integration` -> `https://isus.ezdrowie.gov.pl`
