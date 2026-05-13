@@ -66,9 +66,11 @@ describe P1Tool::Application::Dispatcher do
       generator.value = 'c2lnbmF0dXJl'
 
       result = with_fake_p1_client_factory do
-        with_singleton_stub(P1Tool::Application::Integrations::SignatureService::GenerateSignature, :new, lambda { |**kwargs|
-          generator
-        }) do
+        with_singleton_stub(
+          P1Tool::Application::Integrations::SignatureService::GenerateSignature,
+          :new,
+          ->(**_kwargs) { generator }
+        ) do
           P1Tool::Application::Dispatcher.call_with_config(
             {
               task_id: 'task-register-provenance-1',
@@ -154,8 +156,10 @@ describe P1Tool::Application::Dispatcher do
         )
       end
 
-      assert_equal ['must be one of: register_encounter, register_procedure, register_condition, register_provenance, get_resource, destroy_resource'],
-                   error.details[:operation_kind]
+      assert_equal [
+        'must be one of: register_encounter, register_procedure, register_condition, register_provenance, ' \
+        'get_resource, destroy_resource'
+      ], error.details[:operation_kind]
     end
   end
 end

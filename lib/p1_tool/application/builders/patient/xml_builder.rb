@@ -14,17 +14,9 @@ module P1Tool
           def call
             Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
               xml.Patient(xmlns: 'http://hl7.org/fhir') do
-                xml.meta do
-                  xml.profile(value: 'https://ezdrowie.gov.pl/fhir/StructureDefinition/PLPatient')
-                end
-                xml.identifier do
-                  xml.system(value: P1Tool::Gateways::P1::Constants::PESEL_SYSTEM)
-                  xml.value(value: patient.fetch(:pesel))
-                end
-                xml.name do
-                  xml.family(value: patient.fetch(:last_name))
-                  patient.fetch(:first_name).to_s.split.each { |name| xml.given(value: name) }
-                end
+                meta(xml)
+                identifier(xml)
+                name(xml)
               end
             end.to_xml
           end
@@ -35,6 +27,26 @@ module P1Tool
 
           def patient
             payload.fetch(:patient)
+          end
+
+          def meta(xml)
+            xml.meta do
+              xml.profile(value: 'https://ezdrowie.gov.pl/fhir/StructureDefinition/PLPatient')
+            end
+          end
+
+          def identifier(xml)
+            xml.identifier do
+              xml.system(value: P1Tool::Gateways::P1::Constants::PESEL_SYSTEM)
+              xml.value(value: patient.fetch(:pesel))
+            end
+          end
+
+          def name(xml)
+            xml.name do
+              xml.family(value: patient.fetch(:last_name))
+              patient.fetch(:first_name).to_s.split.each { |name| xml.given(value: name) }
+            end
           end
         end
       end

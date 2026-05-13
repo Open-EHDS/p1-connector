@@ -29,14 +29,20 @@ module P1Tool
           rows.each_with_object({}) do |row, result|
             next if row.empty?
 
-            values = row.split(';', header_names.length)
-            entry = header_names.zip(values).to_h
-            result[entry.fetch('code')] = {
-              code: entry.fetch('code'),
-              system: "urn:oid:2.16.840.1.113883.3.4424.11.1.#{entry.fetch('system')}",
-              display: entry.fetch('name')
-            }
+            entry = parse_entry(row, header_names)
+            result[entry.fetch(:code)] = entry
           end
+        end
+
+        def parse_entry(row, header_names)
+          values = row.split(';', header_names.length)
+          entry = header_names.zip(values).to_h
+
+          {
+            code: entry.fetch('code'),
+            system: "urn:oid:2.16.840.1.113883.3.4424.11.1.#{entry.fetch('system')}",
+            display: entry.fetch('name')
+          }
         end
       end
     end

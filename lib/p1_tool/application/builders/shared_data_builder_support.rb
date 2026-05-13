@@ -11,7 +11,13 @@ module P1Tool
         end
 
         def doctor_identifier_system(doctor)
-          base = blank?(doctor[:npwz]) ? constants::PATIENT_PESEL_IDENTIFICATION_SYSTEM : constants::DOCTOR_NPWZ_IDENTIFICATION_SYSTEM
+          base =
+            if blank?(doctor[:npwz])
+              constants::PATIENT_PESEL_IDENTIFICATION_SYSTEM
+            else
+              constants::DOCTOR_NPWZ_IDENTIFICATION_SYSTEM
+            end
+
           "urn:oid:#{base}"
         end
 

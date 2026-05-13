@@ -12,7 +12,10 @@ module P1Tool
       end
 
       def identifier(xml, system:, value:)
-        xml.identifier { xml.system(value: system); xml.value(value:) }
+        xml.identifier do
+          xml.system(value: system)
+          xml.value(value:)
+        end
       end
 
       def display(xml, value)

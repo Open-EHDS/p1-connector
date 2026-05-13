@@ -97,7 +97,7 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
       with_singleton_stub(
         P1Tool::Application::Dispatcher,
         :call_with_config,
-        ->(_input, config:) { raise StandardError, 'boom' }
+        ->(_input, **_kwargs) { raise StandardError, 'boom' }
       ) do
         processor_class.new(
           config,
@@ -127,7 +127,7 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
     result = with_singleton_stub(
       P1Tool::Application::Dispatcher,
       :call_with_config,
-      ->(_input, config:) { raise StandardError, 'boom' }
+      ->(_input, **_kwargs) { raise StandardError, 'boom' }
     ) do
       processor_class.new(
         config,
@@ -165,7 +165,7 @@ describe P1Tool::Runtime::ContinuousTaskProcessor do
     result = with_singleton_stub(
       P1Tool::Application::Dispatcher,
       :call_with_config,
-      lambda do |_input, config:|
+      lambda do |_input, **_kwargs|
         raise P1Tool::BusinessError.new(
           'p1 failed',
           details: {

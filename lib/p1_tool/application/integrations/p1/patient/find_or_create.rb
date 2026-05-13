@@ -42,15 +42,7 @@ module P1Tool
 
             def find_existing_patient
               response = client.find_patient(payload:)
-              bundle = response[:body]
-              patient =
-                if bundle.is_a?(Hash) && bundle['total'].to_i.positive?
-                  resource = bundle.dig('entry', 0, 'resource')
-                  {
-                    reference_id: resource['id'],
-                    version_id: resource.dig('meta', 'versionId')
-                  } unless resource.nil?
-                end
+              patient = patient_from_bundle(response[:body])
 
               P1Tool::Adapters::ExecutionEvents.record(
                 event_type: 'p1_patient_lookup_finished',
@@ -66,6 +58,18 @@ module P1Tool
               patient
             end
 
+            def patient_from_bundle(bundle)
+              return unless bundle.is_a?(Hash) && bundle['total'].to_i.positive?
+
+              resource = bundle.dig('entry', 0, 'resource')
+              return if resource.nil?
+
+              {
+                reference_id: resource['id'],
+                version_id: resource.dig('meta', 'versionId')
+              }
+            end
+
             def found_result(patient)
               {
                 status: 'found',
@@ -74,7 +78,6 @@ module P1Tool
                 patient_version_id: patient[:version_id]
               }.compact
             end
-
           end
         end
       end

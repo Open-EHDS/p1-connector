@@ -10,7 +10,10 @@ module P1Tool
           def meta(xml)
             xml.meta do
               xml.profile(value: constants::PROFILE)
-              xml.security { xml.system(value: constants::SECURITY_SYSTEM); xml.code(value: constants::DEFAULT_SECURITY_CODE) }
+              xml.security do
+                xml.system(value: constants::SECURITY_SYSTEM)
+                xml.code(value: constants::DEFAULT_SECURITY_CODE)
+              end
             end
           end
 
@@ -32,33 +35,59 @@ module P1Tool
           end
 
           def episode_of_care(xml)
-            xml.episodeOfCare { identifier(xml, system: data[:episode_identifier_system], value: data[:episode_identifier]) }
+            xml.episodeOfCare do
+              identifier(xml, system: data[:episode_identifier_system], value: data[:episode_identifier])
+            end
           end
 
           def participant(xml)
             xml.participant do
-              xml.extension(url: constants::PL_FUNCTION_EXTENSION) do
-                xml.valueCoding { xml.system(value: constants::DOCTOR_PROFESSION_SYSTEM); xml.code(value: data[:doctor_profession_number]) }
+              participant_function(xml)
+              participant_individual(xml)
+            end
+          end
+
+          def participant_function(xml)
+            xml.extension(url: constants::PL_FUNCTION_EXTENSION) do
+              xml.valueCoding do
+                xml.system(value: constants::DOCTOR_PROFESSION_SYSTEM)
+                xml.code(value: data[:doctor_profession_number])
               end
-              xml.individual { identifier(xml, system: data[:doctor_identifier_system], value: data[:doctor_identifier_value]); display(xml, data[:doctor_name]) }
+            end
+          end
+
+          def participant_individual(xml)
+            xml.individual do
+              identifier(xml, system: data[:doctor_identifier_system], value: data[:doctor_identifier_value])
+              display(xml, data[:doctor_name])
             end
           end
 
           def period(xml)
-            xml.period { xml.start(value: data[:start_time]); xml.end(value: data[:end_time]) }
+            xml.period do
+              xml.start(value: data[:start_time])
+              xml.end(value: data[:end_time])
+            end
           end
 
           def location(xml)
             xml.location do
-              xml.location { identifier(xml, system: data[:location_identifier_system], value: data[:location_identifier_value]) }
-              xml.period { xml.start(value: data[:start_time]); xml.end(value: data[:end_time]) }
+              xml.location do
+                identifier(xml, system: data[:location_identifier_system], value: data[:location_identifier_value])
+              end
+              xml.period do
+                xml.start(value: data[:start_time])
+                xml.end(value: data[:end_time])
+              end
             end
           end
 
           def service_provider(xml)
             xml.serviceProvider do
               xml.extension(url: constants::PL_PAYOR_REFERENCE_EXTENSION) do
-                xml.valueReference { identifier(xml, system: data[:payer_identifier_system], value: data[:payer_identifier_value]) }
+                xml.valueReference do
+                  identifier(xml, system: data[:payer_identifier_system], value: data[:payer_identifier_value])
+                end
               end
               identifier(xml, system: data[:provider_identifier_system], value: data[:provider_identifier_value])
             end

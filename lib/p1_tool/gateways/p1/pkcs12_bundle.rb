@@ -18,15 +18,8 @@ module P1Tool
         end
 
         def load
-          OpenSSL::Provider.load('legacy')
-          OpenSSL::Cipher.new('RC4')
-          pkcs12 = OpenSSL::PKCS12.new(File.binread(path), password)
-
-          self.class.allocate.tap do |bundle|
-            bundle.instance_variable_set(:@certificate, pkcs12.certificate)
-            bundle.instance_variable_set(:@key, pkcs12.key)
-            bundle.instance_variable_set(:@ca_certs, pkcs12.ca_certs)
-          end
+          prepare_legacy_provider
+          build_bundle(OpenSSL::PKCS12.new(File.binread(path), password))
         rescue Errno::ENOENT
           raise P1Tool::ConfigurationError, "Certificate file not found: #{path}"
         rescue OpenSSL::PKCS12::PKCS12Error => e
@@ -36,6 +29,19 @@ module P1Tool
         private
 
         attr_reader :path, :password
+
+        def prepare_legacy_provider
+          OpenSSL::Provider.load('legacy')
+          OpenSSL::Cipher.new('RC4')
+        end
+
+        def build_bundle(pkcs12)
+          self.class.allocate.tap do |bundle|
+            bundle.instance_variable_set(:@certificate, pkcs12.certificate)
+            bundle.instance_variable_set(:@key, pkcs12.key)
+            bundle.instance_variable_set(:@ca_certs, pkcs12.ca_certs)
+          end
+        end
       end
     end
   end

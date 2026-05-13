@@ -38,7 +38,9 @@ module P1Tool
         attr_reader :subject, :doctor, :clock, :uuid_generator
 
         def subject_token_oid
-          return "#{Constants::PRACTICE_SYSTEM_PREFIX}#{subject.fetch(:medical_chamber)}:#{subject.fetch(:identification_code)}" if subject.fetch(:is_practice)
+          if subject.fetch(:is_practice)
+            return "#{Constants::PRACTICE_SYSTEM_PREFIX}#{subject.fetch(:medical_chamber)}:#{subject.fetch(:identification_code)}"
+          end
 
           "#{Constants::ENTITY_SYSTEM}:#{subject.fetch(:identification_code)}"
         end

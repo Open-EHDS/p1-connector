@@ -33,10 +33,14 @@ describe P1Tool::Application::Builders::Procedure::XmlBuilder do
       document = Nokogiri::XML(xml)
 
       assert_equal 'Procedure', document.root.name
-      assert_equal 'enc-123', document.at_xpath('//*[local-name()="encounter"]/*[local-name()="reference"]')['value'].sub('Encounter/', '')
-      assert_equal '85', document.at_xpath('//*[local-name()="bodySite"]/*[local-name()="coding"]/*[local-name()="code"]')['value']
+      assert_equal 'enc-123',
+                   value_at(document, '//*[local-name()="encounter"]/*[local-name()="reference"]').sub(
+                     'Encounter/', ''
+                   )
+      assert_equal '85',
+                   value_at(document, '//*[local-name()="bodySite"]/*[local-name()="coding"]/*[local-name()="code"]')
       assert_equal 'dolne prawe drugie trzonowce mleczne',
-                   document.at_xpath('//*[local-name()="bodySite"]/*[local-name()="coding"]/*[local-name()="display"]')['value']
+                   value_at(document, '//*[local-name()="bodySite"]/*[local-name()="coding"]/*[local-name()="display"]')
     end
 
     it 'omits bodySite when element_code is missing' do
@@ -63,5 +67,9 @@ describe P1Tool::Application::Builders::Procedure::XmlBuilder do
 
       assert_nil document.at_xpath('//*[local-name()="bodySite"]')
     end
+  end
+
+  def value_at(document, xpath)
+    document.at_xpath(xpath)['value']
   end
 end

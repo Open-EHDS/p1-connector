@@ -55,28 +55,45 @@ module P1Tool
             base_url = P1Tool::Gateways::P1::Constants.environment!(config.dig(:p1, :environment)).fetch(:base_url)
 
             payload.fetch(:references).map do |reference|
-              "#{base_url}/fhir/#{reference.fetch(:resource_type)}/#{reference.fetch(:reference_id)}/_history/#{reference.fetch(:version_id)}"
+              reference_url(base_url, reference)
             end
           end
 
           def fetch_signature_documents
             payload.fetch(:references).zip(reference_urls).map do |reference, uri|
-              fetched_resource = P1Tool::Application::Integrations::P1::Resource::FetchXml.new(
-                resource_type: reference.fetch(:resource_type),
-                reference_id: reference.fetch(:reference_id),
-                version_id: reference.fetch(:version_id),
-                client:
-              ).call
-
-              {
-                resource_type: fetched_resource.fetch(:resource_type),
-                reference_id: fetched_resource.fetch(:reference_id),
-                version_id: fetched_resource[:version_id],
-                uri:,
-                mime_type: normalize_mime_type(fetched_resource[:content_type]),
-                content: fetched_resource.fetch(:xml)
-              }.compact
+              build_document_entry(fetch_resource(reference), uri)
             end
+          end
+
+          def fetch_resource(reference)
+            P1Tool::Application::Integrations::P1::Resource::FetchXml.new(
+              resource_type: reference.fetch(:resource_type),
+              reference_id: reference.fetch(:reference_id),
+              version_id: reference.fetch(:version_id),
+              client:
+            ).call
+          end
+
+          def build_document_entry(fetched_resource, uri)
+            {
+              resource_type: fetched_resource.fetch(:resource_type),
+              reference_id: fetched_resource.fetch(:reference_id),
+              version_id: fetched_resource[:version_id],
+              uri:,
+              mime_type: normalize_mime_type(fetched_resource[:content_type]),
+              content: fetched_resource.fetch(:xml)
+            }.compact
+          end
+
+          def reference_url(base_url, reference)
+            [
+              base_url,
+              'fhir',
+              reference.fetch(:resource_type),
+              reference.fetch(:reference_id),
+              '_history',
+              reference.fetch(:version_id)
+            ].join('/')
           end
 
           def normalize_mime_type(content_type)

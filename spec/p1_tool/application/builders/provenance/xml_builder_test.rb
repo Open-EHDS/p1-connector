@@ -26,8 +26,8 @@ describe P1Tool::Application::Builders::Provenance::XmlBuilder do
       assert_equal 'Provenance', document.root.name
       assert_equal 'https://ezdrowie.gov.pl/fhir/StructureDefinition/PLMedicalEventProvenance',
                    document.at_xpath('//*[local-name()="meta"]/*[local-name()="profile"]')['value']
-      assert_equal %w[Patient Encounter Procedure],
-                   document.xpath('//*[local-name()="target"]/*[local-name()="type"]').map { |node| node['value'] }
+      assert_equal(%w[Patient Encounter Procedure],
+                   document.xpath('//*[local-name()="target"]/*[local-name()="type"]').map { |node| node['value'] })
       assert_equal '2021-09-28T13:00:00+02:00',
                    document.at_xpath('//*[local-name()="recorded"]')['value']
       assert_equal 'application/signature+xml',

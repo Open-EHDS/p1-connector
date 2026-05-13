@@ -14,18 +14,10 @@ module P1Tool
         end
 
         def generate_signature(documents:)
-          response = connection.post('api/v1/signatures/xades-detached') do |request|
-            request.headers['Content-Type'] = 'application/json'
-            request.headers['Accept'] = 'application/json'
-            request.body = JSON.generate(documents:)
-          end
-
+          response = request_signature(documents)
           body = parse_body(response.body)
           handle_response!(response, body)
-
-          unless body.is_a?(Hash) && (body.key?('document') || body.key?('documentBase64'))
-            raise P1Tool::BusinessError, "Signature service response does not include document or documentBase64: #{body.inspect}"
-          end
+          validate_signature_body!(body)
 
           body
         rescue Faraday::TimeoutError, Faraday::ConnectionFailed => e
@@ -36,17 +28,23 @@ module P1Tool
 
         attr_reader :base_url, :timeout_seconds, :connection_factory
 
-        def connection
-          @connection ||= begin
-            if connection_factory
-              connection_factory.call
-            else
-              Faraday.new(url: base_url) do |faraday|
-                faraday.options.timeout = timeout_seconds
-                faraday.adapter Faraday.default_adapter
-              end
-            end
+        def request_signature(documents)
+          connection.post('api/v1/signatures/xades-detached') do |request|
+            request.headers['Content-Type'] = 'application/json'
+            request.headers['Accept'] = 'application/json'
+            request.body = JSON.generate(documents:)
           end
+        end
+
+        def connection
+          @connection ||= if connection_factory
+                            connection_factory.call
+                          else
+                            Faraday.new(url: base_url) do |faraday|
+                              faraday.options.timeout = timeout_seconds
+                              faraday.adapter Faraday.default_adapter
+                            end
+                          end
         end
 
         def parse_body(body)
@@ -66,6 +64,13 @@ module P1Tool
           raise P1Tool::TransientError.new(message, details: details) if response.status >= 500
 
           raise P1Tool::BusinessError.new(message, details: details)
+        end
+
+        def validate_signature_body!(body)
+          return if body.is_a?(Hash) && (body.key?('document') || body.key?('documentBase64'))
+
+          raise P1Tool::BusinessError,
+                "Signature service response does not include document or documentBase64: #{body.inspect}"
         end
       end
     end

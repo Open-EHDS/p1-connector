@@ -25,6 +25,7 @@ Metrics/BlockLength:
   Exclude:
     - 'spec/**/*'
     - 'lib/p1_tool/core/configuration_schema.rb'
+    - 'lib/p1_tool/application/contracts/**/payload_schema.rb'
 
 Metrics/MethodLength:
   Max: 20
@@ -36,6 +37,7 @@ Metrics/ParameterLists:
     - 'spec/test_helper.rb'
     - 'lib/p1_tool/runtime/execution_context.rb'
     - 'lib/p1_tool/runtime/task_processor.rb'
+    - 'lib/p1_tool/gateways/p1/transports/http.rb'
 
 Style/StringLiterals:
   EnforcedStyle: single_quotes

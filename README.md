@@ -563,6 +563,14 @@ rm -rf tmp/local
 
 ## Testy
 
+Domyslna lokalna bramka jakosci:
+
+```bash
+bundle exec rake quality
+```
+
+Uruchamia szybkie testy Ruby oraz RuboCopa. RuboCop jest odpalany z `--cache false`, zeby nie zalezec od zapisu do katalogu domowego uzytkownika.
+
 Szybki zestaw jednostkowy:
 
 ```bash
@@ -592,6 +600,14 @@ Pelny lokalny zestaw:
 ```bash
 bundle exec rake test
 ```
+
+Szersza lokalna bramka, obejmujaca takze testy Java w `services/signature-tool`:
+
+```bash
+bundle exec rake quality:full
+```
+
+Zadanie `test:signature` uzywa projektowego cache Gradle w `tmp/gradle`, zeby nie wymagac zapisu do `~/.gradle`.
 
 Pelne lokalne uruchomienie z wykonanym testem integracyjnym wymaga:
 

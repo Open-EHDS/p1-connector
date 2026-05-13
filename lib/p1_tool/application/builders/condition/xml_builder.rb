@@ -43,7 +43,10 @@ module P1Tool
           def meta(xml)
             xml.meta do
               xml.profile(value: constants::PROFILE)
-              xml.security { xml.system(value: constants::SECURITY_SYSTEM); xml.code(value: constants::DEFAULT_SECURITY_CODE) }
+              xml.security do
+                xml.system(value: constants::SECURITY_SYSTEM)
+                xml.code(value: constants::DEFAULT_SECURITY_CODE)
+              end
             end
           end
 

@@ -46,18 +46,8 @@ module P1Tool
           doctor = normalized[:doctor]
           return unless doctor.is_a?(Hash)
 
-          if blank?(doctor[:npwz]) && blank?(doctor[:pesel])
-            append_error(details, :doctor, :base, 'must include npwz or pesel')
-          end
-
-          return if constants.supported_profession_codes.include?(doctor[:profession_code])
-
-          append_error(
-            details,
-            :doctor,
-            :profession_code,
-            "must be one of: #{constants.supported_profession_codes.join(', ')}"
-          )
+          validate_doctor_identity!(doctor, details)
+          validate_doctor_profession!(doctor, details, constants.supported_profession_codes)
         end
 
         def validate_medical_profession_code!(normalized, details)
@@ -72,27 +62,39 @@ module P1Tool
           mapped_code = constants.mapped_medical_profession_code_for(profession_code)
 
           if blank?(explicit_code)
-            return unless mapped_code.nil?
-
-            append_error(
-              details,
-              :doctor,
-              :medical_profession_code,
-              'must be provided when profession_code cannot be mapped automatically'
-            )
+            validate_missing_medical_profession_code!(details, mapped_code)
             return
           end
 
-          unless constants.supported_medical_profession_codes.include?(explicit_code)
-            append_error(
-              details,
-              :doctor,
-              :medical_profession_code,
-              "must be one of: #{constants.supported_medical_profession_codes.join(', ')}"
-            )
-            return
-          end
+          return unless supported_medical_profession_code?(details, explicit_code)
 
+          validate_medical_profession_mapping!(details, explicit_code, mapped_code)
+        end
+
+        def validate_missing_medical_profession_code!(details, mapped_code)
+          return unless mapped_code.nil?
+
+          append_error(
+            details,
+            :doctor,
+            :medical_profession_code,
+            'must be provided when profession_code cannot be mapped automatically'
+          )
+        end
+
+        def supported_medical_profession_code?(details, explicit_code)
+          return true if constants.supported_medical_profession_codes.include?(explicit_code)
+
+          append_error(
+            details,
+            :doctor,
+            :medical_profession_code,
+            "must be one of: #{constants.supported_medical_profession_codes.join(', ')}"
+          )
+          false
+        end
+
+        def validate_medical_profession_mapping!(details, explicit_code, mapped_code)
           return if mapped_code.nil? || explicit_code == mapped_code
 
           append_error(

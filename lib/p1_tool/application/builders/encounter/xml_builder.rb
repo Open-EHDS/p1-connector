@@ -28,18 +28,26 @@ module P1Tool
 
           def build_encounter(xml)
             xml.Encounter(xmlns: 'http://hl7.org/fhir') do
-              resource_id(xml, data[:resource_id])
-              meta(xml)
-              identifier(xml, system: data[:encounter_identifier_system], value: data[:encounter_identifier])
-              xml.status(value: data[:status])
-              encounter_class(xml)
-              subject(xml)
-              episode_of_care(xml)
-              participant(xml)
-              period(xml)
-              location(xml)
-              service_provider(xml)
+              encounter_identity(xml)
+              encounter_details(xml)
             end
+          end
+
+          def encounter_identity(xml)
+            resource_id(xml, data[:resource_id])
+            meta(xml)
+            identifier(xml, system: data[:encounter_identifier_system], value: data[:encounter_identifier])
+            xml.status(value: data[:status])
+          end
+
+          def encounter_details(xml)
+            encounter_class(xml)
+            subject(xml)
+            episode_of_care(xml)
+            participant(xml)
+            period(xml)
+            location(xml)
+            service_provider(xml)
           end
         end
       end

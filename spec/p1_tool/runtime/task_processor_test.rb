@@ -130,7 +130,7 @@ describe P1Tool::Runtime::TaskProcessor do
       result = with_singleton_stub(
         P1Tool::Application::Dispatcher,
         :call_with_config,
-        ->(_input, config:) { raise StandardError, 'boom' }
+        ->(_input, **_kwargs) { raise StandardError, 'boom' }
       ) do
         processor.call
       end
@@ -151,7 +151,7 @@ describe P1Tool::Runtime::TaskProcessor do
       result = with_singleton_stub(
         P1Tool::Application::Dispatcher,
         :call_with_config,
-        lambda do |_input, config:|
+        lambda do |_input, **_kwargs|
           raise P1Tool::BusinessError.new(
             'p1 failed',
             details: {
@@ -169,6 +169,7 @@ describe P1Tool::Runtime::TaskProcessor do
       assert_equal [{ 'diagnostics' => 'invalid payload' }], result.dig(:error, :body, 'issue')
 
       persisted_result = JSON.parse(File.read(output_path))
+
       assert_equal 422, persisted_result.fetch('error').fetch('http_status')
       assert_equal [{ 'diagnostics' => 'invalid payload' }], persisted_result.fetch('error').dig('body', 'issue')
 

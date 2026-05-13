@@ -35,17 +35,9 @@ module P1Tool
               return
             end
 
-            append_error(details, :doctor, :name, 'must be filled') if blank?(doctor[:name])
-            append_error(details, :doctor, :profession_code, 'must be filled') if blank?(doctor[:profession_code])
-
-            if blank?(doctor[:npwz]) && blank?(doctor[:pesel])
-              append_error(details, :doctor, :base, 'must include npwz or pesel')
-            end
-
-            return if blank?(doctor[:profession_code])
-            return if constants.supported_profession_codes.include?(doctor[:profession_code])
-
-            append_error(details, :doctor, :profession_code, "must be one of: #{constants.supported_profession_codes.join(', ')}")
+            validate_doctor_required_fields!(doctor, details)
+            validate_doctor_identity!(doctor, details)
+            validate_doctor_profession!(doctor, details, constants.supported_profession_codes)
           end
 
           def validate_resource!(normalized, details)

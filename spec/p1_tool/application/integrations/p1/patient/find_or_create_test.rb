@@ -18,11 +18,11 @@ describe P1Tool::Application::Integrations::P1::Patient::FindOrCreate do
         @created_xml = nil
       end
 
-      def find_patient(payload:)
+      def find_patient(**_kwargs)
         { status: 200, body: { 'resourceType' => 'Bundle', 'total' => 0, 'entry' => [] } }
       end
 
-      def create_resource(resource_type:, xml:)
+      def create_resource(xml:, **_kwargs)
         @created_xml = xml
         { status: 201, reference_id: 'new-patient-1', version_id: '1' }
       end
@@ -58,8 +58,8 @@ describe P1Tool::Application::Integrations::P1::Patient::FindOrCreate do
     assert_equal 'created', result[:status]
     assert_equal 'new-patient-1', result[:patient_reference_id]
     assert_equal '1', result[:patient_version_id]
-    assert_equal %w[p1_patient_lookup_finished p1_patient_created], events.map { |event| event['event_type'] }
-    assert_equal false, events[0].dig('metadata', 'found')
+    assert_equal(%w[p1_patient_lookup_finished p1_patient_created], events.map { |event| event['event_type'] })
+    refute events[0].dig('metadata', 'found')
     assert_equal 'new-patient-1', events[1].dig('metadata', 'patient_reference_id')
     assert_equal '1', events[1].dig('metadata', 'patient_version_id')
     assert_includes client.created_xml, '<Patient'

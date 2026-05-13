@@ -39,15 +39,25 @@ describe P1Tool::Application::Builders::Encounter::XmlBuilder do
       )
       assert_equal(
         'urn:oid:2.16.840.1.113883.3.4424.2.3.3',
-        document.at_xpath('//*[local-name()="location"]/*[local-name()="location"]/*[local-name()="identifier"]/*[local-name()="system"]')[:value]
+        value_at(
+          document,
+          '//*[local-name()="location"]/*[local-name()="location"]/*' \
+          '[local-name()="identifier"]/*[local-name()="system"]'
+        )
       )
       assert_equal(
         '1234567890-1234567',
-        document.at_xpath('//*[local-name()="location"]/*[local-name()="location"]/*[local-name()="identifier"]/*[local-name()="value"]')[:value]
+        value_at(
+          document,
+          '//*[local-name()="location"]/*[local-name()="location"]/*[local-name()="identifier"]/*[local-name()="value"]'
+        )
       )
       assert_equal(
         'urn:oid:2.16.840.1.113883.3.4424.2.3.1',
-        document.at_xpath('//*[local-name()="serviceProvider"]/*[local-name()="identifier"]/*[local-name()="system"]')[:value]
+        value_at(
+          document,
+          '//*[local-name()="serviceProvider"]/*[local-name()="identifier"]/*[local-name()="system"]'
+        )
       )
     end
 
@@ -66,5 +76,9 @@ describe P1Tool::Application::Builders::Encounter::XmlBuilder do
       ENV.delete('P1_DEBUG_XML')
       ENV.delete('P1_DEBUG_XML_PATH')
     end
+  end
+
+  def value_at(document, xpath)
+    document.at_xpath(xpath)[:value]
   end
 end

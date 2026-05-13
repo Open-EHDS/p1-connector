@@ -8,11 +8,11 @@ describe P1Tool::Application::Operations::GetResource do
   let(:input) { fixture_json('runtime', 'get_resource_input.json') }
 
   {
-    'Patient' => ['pat-123', '7'],
-    'Encounter' => ['enc-123', '1'],
-    'Procedure' => ['proc-123', '1'],
-    'Condition' => ['cond-123', '1'],
-    'Provenance' => ['prov-123', '1']
+    'Patient' => %w[pat-123 7],
+    'Encounter' => %w[enc-123 1],
+    'Procedure' => %w[proc-123 1],
+    'Condition' => %w[cond-123 1],
+    'Provenance' => %w[prov-123 1]
   }.each do |resource_type, (reference_id, version_id)|
     it "returns xml for #{resource_type}" do
       result = operation_class.call(

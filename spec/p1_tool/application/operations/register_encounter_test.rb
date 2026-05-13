@@ -35,7 +35,9 @@ describe P1Tool::Application::Operations::RegisterEncounter do
         {
           task_id: input.fetch('task_id'),
           operation_kind: input.fetch('operation_kind'),
-          payload: input.fetch('payload').merge('encounter' => input.fetch('payload').fetch('encounter').merge('resource_id' => 'enc-123'))
+          payload: input.fetch('payload').merge(
+            'encounter' => input.fetch('payload').fetch('encounter').merge('resource_id' => 'enc-123')
+          )
         },
         config: config,
         p1_client: build_fake_p1_client

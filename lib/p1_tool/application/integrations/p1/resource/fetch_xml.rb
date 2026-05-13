@@ -6,7 +6,7 @@ module P1Tool
       module P1
         module Resource
           class FetchXml
-            def initialize(resource_type:, reference_id:, version_id: nil, client:)
+            def initialize(resource_type:, reference_id:, client:, version_id: nil)
               @resource_type = resource_type
               @reference_id = reference_id
               @version_id = version_id

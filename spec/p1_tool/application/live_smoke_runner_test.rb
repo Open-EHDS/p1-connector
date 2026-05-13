@@ -48,8 +48,8 @@ describe P1Tool::Application::LiveSmokeRunner do
     assert_includes stdout.string, 'p1_encounter_submitted'
     assert_includes stdout.string, 'p1_resource_destroyed'
     assert_empty stderr.string
-    assert_nil ENV['P1_DEBUG_XML']
-    assert_nil ENV['P1_DEBUG_XML_PATH']
+    assert_nil ENV.fetch('P1_DEBUG_XML', nil)
+    assert_nil ENV.fetch('P1_DEBUG_XML_PATH', nil)
   end
 
   it 'runs procedure smoke after successful encounter smoke' do
@@ -165,7 +165,7 @@ describe P1Tool::Application::LiveSmokeRunner do
 
     exit_code = with_stubbed_pkcs12_validation do
       with_fake_p1_client_factory(client) do
-        with_singleton_stub(P1Tool::Gateways::SignatureService::Client, :new, ->(base_url:) { signature_client }) do
+        with_singleton_stub(P1Tool::Gateways::SignatureService::Client, :new, ->(**_kwargs) { signature_client }) do
           P1Tool::Application::LiveSmokeRunner.start(
             [
               '--config', config_path,
@@ -220,10 +220,10 @@ describe P1Tool::Application::LiveSmokeRunner do
       }
     ], signature_client.documents
     assert_equal [
-      ['Provenance', 'stub-provenance-1'],
-      ['Condition', 'stub-condition-1'],
-      ['Procedure', 'stub-procedure-1'],
-      ['Encounter', 'stub-encounter-1']
+      %w[Provenance stub-provenance-1],
+      %w[Condition stub-condition-1],
+      %w[Procedure stub-procedure-1],
+      %w[Encounter stub-encounter-1]
     ], destroy_calls
     assert_includes stdout.string, 'Provenance result path:'
     assert_includes stdout.string, 'Provenance cleanup result path:'

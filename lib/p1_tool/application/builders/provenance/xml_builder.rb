@@ -39,7 +39,10 @@ module P1Tool
           def meta(xml)
             xml.meta do
               xml.profile(value: constants::PROFILE)
-              xml.security { xml.system(value: constants::SECURITY_SYSTEM); xml.code(value: constants::DEFAULT_SECURITY_CODE) }
+              xml.security do
+                xml.system(value: constants::SECURITY_SYSTEM)
+                xml.code(value: constants::DEFAULT_SECURITY_CODE)
+              end
             end
           end
 
@@ -67,13 +70,21 @@ module P1Tool
                 xml.code(value: constants::SIGNATURE_TYPE_CODE)
               end
               xml.when(value: data[:recorded_at])
-              xml.who do
-                identifier(xml, system: data[:provider_identifier_system], value: data[:provider_identifier_value])
-              end
-              xml.targetFormat(value: constants::TARGET_FORMAT)
-              xml.sigFormat(value: constants::SIGNATURE_FORMAT)
-              xml.data(value: data[:signature])
+              signature_who(xml)
+              signature_formats(xml)
             end
+          end
+
+          def signature_who(xml)
+            xml.who do
+              identifier(xml, system: data[:provider_identifier_system], value: data[:provider_identifier_value])
+            end
+          end
+
+          def signature_formats(xml)
+            xml.targetFormat(value: constants::TARGET_FORMAT)
+            xml.sigFormat(value: constants::SIGNATURE_FORMAT)
+            xml.data(value: data[:signature])
           end
 
           def debug_identifier

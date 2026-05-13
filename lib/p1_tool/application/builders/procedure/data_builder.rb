@@ -16,10 +16,21 @@ module P1Tool
 
           def call
             procedure = payload.fetch(:procedure)
-            doctor = payload.fetch(:doctor)
-            patient = payload.fetch(:patient)
             element = build_element(procedure[:element_code])
 
+            procedure_data(procedure)
+              .merge(patient_data)
+              .merge(doctor_data)
+              .merge(location_data)
+              .merge(element_data(element))
+              .compact
+          end
+
+          private
+
+          attr_reader :payload, :subject, :constants, :element_catalog
+
+          def procedure_data(procedure)
             {
               resource_id: procedure[:resource_id],
               status: procedure[:status] || constants::DEFAULT_STATUS,
@@ -27,24 +38,44 @@ module P1Tool
               icd_9_name: procedure.fetch(:icd_9_name),
               encounter_reference_id: payload.fetch(:encounter).fetch(:resource_id),
               start_time: procedure.fetch(:start_time),
-              end_time: procedure.fetch(:end_time),
+              end_time: procedure.fetch(:end_time)
+            }
+          end
+
+          def patient_data
+            patient = payload.fetch(:patient)
+
+            {
               patient_pesel: patient.fetch(:pesel),
-              patient_name: patient_name(patient),
+              patient_name: patient_name(patient)
+            }
+          end
+
+          def doctor_data
+            doctor = payload.fetch(:doctor)
+
+            {
               doctor_name: doctor.fetch(:name),
               doctor_identifier_system: doctor_identifier_system(doctor),
               doctor_identifier_value: doctor_identifier_value(doctor),
-              doctor_profession_number: constants.resolve_medical_profession_code(doctor),
+              doctor_profession_number: constants.resolve_medical_profession_code(doctor)
+            }
+          end
+
+          def location_data
+            {
               location_identifier_system: subject_location_system,
-              location_identifier_value: subject_location_value,
+              location_identifier_value: subject_location_value
+            }
+          end
+
+          def element_data(element)
+            {
               element_code: element&.fetch(:code, nil),
               element_system: element&.fetch(:system, nil),
               element_display: element&.fetch(:display, nil)
-            }.compact
+            }
           end
-
-          private
-
-          attr_reader :payload, :subject, :constants, :element_catalog
 
           def build_element(element_code)
             return nil if blank?(element_code)
