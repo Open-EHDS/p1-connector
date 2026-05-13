@@ -4,31 +4,33 @@ require_relative '../../../../test_helper'
 
 describe P1Tool::Application::Builders::Procedure::XmlBuilder do
   let(:builder_class) { P1Tool::Application::Builders::Procedure::XmlBuilder }
+  let(:data_builder_class) { P1Tool::Application::Builders::Procedure::DataBuilder }
+  let(:validator_class) { P1Tool::Application::Contracts::RegisterProcedure::PayloadValidator }
+  let(:subject) { runtime_subject_config }
+  let(:validated_payload) do
+    validator_class.new.validate!(
+      payload: fixture_json('runtime', 'register_procedure_input.json').fetch('payload'),
+      subject:
+    )
+  end
+  let(:data) do
+    data_builder_class.new(
+      payload: validated_payload,
+      subject:
+    ).call.merge(
+      patient_reference_id: 'pat-123'
+    )
+  end
 
   describe '#call' do
+    it 'matches the register_procedure XML contract fixture' do
+      xml = builder_class.new(data).call
+
+      assert_xml_equal fixture_text('xml', 'register_procedure.xml'), xml
+    end
+
     it 'builds procedure xml with bodySite when element is present' do
-      xml = builder_class.new(
-        {
-          resource_id: 'proc-123',
-          status: 'completed',
-          icd_9_code: '23.1108',
-          icd_9_name: 'Wypelnienie ubytku korony zeba mlecznego',
-          encounter_reference_id: 'enc-123',
-          patient_reference_id: 'pat-123',
-          patient_pesel: '75061134485',
-          doctor_name: 'Adam739 Leczniczy',
-          doctor_identifier_system: 'urn:oid:2.16.840.1.113883.3.4424.1.6.2',
-          doctor_identifier_value: '5691489',
-          doctor_profession_number: '11',
-          location_identifier_system: 'urn:oid:2.16.840.1.113883.3.4424.2.4.68.1',
-          location_identifier_value: '000000927154',
-          element_code: '85',
-          element_system: 'urn:oid:2.16.840.1.113883.3.4424.11.1.123',
-          element_display: 'dolne prawe drugie trzonowce mleczne',
-          start_time: '2021-09-28T12:30:00+02:00',
-          end_time: '2021-09-28T13:00:00+02:00'
-        }
-      ).call
+      xml = builder_class.new(data).call
 
       document = Nokogiri::XML(xml)
 
@@ -44,24 +46,7 @@ describe P1Tool::Application::Builders::Procedure::XmlBuilder do
     end
 
     it 'omits bodySite when element_code is missing' do
-      xml = builder_class.new(
-        {
-          status: 'completed',
-          icd_9_code: '23.0105',
-          icd_9_name: 'Konsultacja specjalistyczna',
-          encounter_reference_id: 'enc-123',
-          patient_reference_id: 'pat-123',
-          patient_pesel: '75061134485',
-          doctor_name: 'Adam739 Leczniczy',
-          doctor_identifier_system: 'urn:oid:2.16.840.1.113883.3.4424.1.6.2',
-          doctor_identifier_value: '5691489',
-          doctor_profession_number: '11',
-          location_identifier_system: 'urn:oid:2.16.840.1.113883.3.4424.2.4.68.1',
-          location_identifier_value: '000000927154',
-          start_time: '2021-09-28T12:30:00+02:00',
-          end_time: '2021-09-28T13:00:00+02:00'
-        }
-      ).call
+      xml = builder_class.new(data.merge(element_code: nil, element_system: nil, element_display: nil)).call
 
       document = Nokogiri::XML(xml)
 

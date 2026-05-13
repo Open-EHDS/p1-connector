@@ -5,20 +5,36 @@ require_relative '../../../../test_helper'
 
 describe P1Tool::Application::Builders::Encounter::XmlBuilder do
   let(:builder_class) { P1Tool::Application::Builders::Encounter::XmlBuilder }
+  let(:data_builder_class) { P1Tool::Application::Builders::Encounter::DataBuilder }
+  let(:validator_class) { P1Tool::Application::Contracts::RegisterEncounter::PayloadValidator }
   let(:payload) do
-    P1Tool::Application::Contracts::RegisterEncounter::PayloadValidator.new.validate!(
+    validator_class.new.validate!(
       payload: fixture_json('runtime', 'register_encounter_input.json').fetch('payload'),
       subject: runtime_subject_config
     )
   end
   let(:subject) { runtime_subject_config }
+  let(:id_generator) do
+    identifiers = %w[encounter-identifier-1 episode-identifier-1].each
+    -> { identifiers.next }
+  end
   let(:data) do
-    P1Tool::Application::Builders::Encounter::DataBuilder.new(payload:, subject:).call.merge(
+    data_builder_class.new(
+      payload:,
+      subject:,
+      id_generator:
+    ).call.merge(
       patient_reference_id: 'stub-patient-75061134485'
     )
   end
 
   describe '#call' do
+    it 'matches the register_encounter XML contract fixture' do
+      xml = builder_class.new(data).call
+
+      assert_xml_equal fixture_text('xml', 'register_encounter.xml'), xml
+    end
+
     it 'builds encounter XML for entity subject config' do
       xml = builder_class.new(data).call
       document = Nokogiri::XML(xml)

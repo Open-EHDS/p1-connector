@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Provenance xmlns="http://hl7.org/fhir">
+  <meta>
+    <profile value="https://ezdrowie.gov.pl/fhir/StructureDefinition/PLMedicalEventProvenance"/>
+    <security>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.83"/>
+      <code value="N"/>
+    </security>
+  </meta>
+  <target>
+    <reference value="Patient/pat-123"/>
+    <type value="Patient"/>
+  </target>
+  <target>
+    <reference value="Encounter/enc-123"/>
+    <type value="Encounter"/>
+  </target>
+  <target>
+    <reference value="Procedure/proc-123"/>
+    <type value="Procedure"/>
+  </target>
+  <target>
+    <reference value="Condition/cond-123"/>
+    <type value="Condition"/>
+  </target>
+  <recorded value="2021-09-28T13:00:00+02:00"/>
+  <agent>
+    <who>
+      <identifier>
+        <system value="urn:oid:2.16.840.1.113883.3.4424.2.3.1"/>
+        <value value="1234567890"/>
+      </identifier>
+    </who>
+  </agent>
+  <signature>
+    <type>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.86"/>
+      <code value="1.2.840.10065.1.12.1.14"/>
+    </type>
+    <when value="2021-09-28T13:00:00+02:00"/>
+    <who>
+      <identifier>
+        <system value="urn:oid:2.16.840.1.113883.3.4424.2.3.1"/>
+        <value value="1234567890"/>
+      </identifier>
+    </who>
+    <targetFormat value="application/fhir+xml"/>
+    <sigFormat value="application/signature+xml"/>
+    <data value="c2lnbmF0dXJl"/>
+  </signature>
+</Provenance>

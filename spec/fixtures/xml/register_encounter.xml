@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Encounter xmlns="http://hl7.org/fhir">
+  <meta>
+    <profile value="https://ezdrowie.gov.pl/fhir/StructureDefinition/PLMedicalEvent"/>
+    <security>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.83"/>
+      <code value="N"/>
+    </security>
+  </meta>
+  <identifier>
+    <system value="urn:oid:2.16.840.1.113883.3.4424.2.7.1234567890.15.1"/>
+    <value value="encounter-identifier-1"/>
+  </identifier>
+  <status value="finished"/>
+  <class>
+    <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.34"/>
+    <code value="4"/>
+    <display value="Porada"/>
+  </class>
+  <subject>
+    <reference value="Patient/stub-patient-75061134485"/>
+    <type value="Patient"/>
+    <identifier>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.1.1.616"/>
+      <value value="75061134485"/>
+    </identifier>
+    <display value="Dorota Kalandyk"/>
+  </subject>
+  <episodeOfCare>
+    <identifier>
+      <system value="urn:oid:1.2.616.1.113883.3.4424.1.1.15.5"/>
+      <value value="episode-identifier-1"/>
+    </identifier>
+  </episodeOfCare>
+  <participant>
+    <extension url="https://ezdrowie.gov.pl/fhir/StructureDefinition/PLFunction">
+      <valueCoding>
+        <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.80"/>
+        <code value="11"/>
+      </valueCoding>
+    </extension>
+    <individual>
+      <identifier>
+        <system value="urn:oid:2.16.840.1.113883.3.4424.1.6.2"/>
+        <value value="3548362"/>
+      </identifier>
+      <display value="Dorota358 Leczniczy"/>
+    </individual>
+  </participant>
+  <period>
+    <start value="2021-09-28T12:30:00+02:00"/>
+    <end value="2021-09-28T13:00:00+02:00"/>
+  </period>
+  <location>
+    <location>
+      <identifier>
+        <system value="urn:oid:2.16.840.1.113883.3.4424.2.3.3"/>
+        <value value="1234567890-1234567"/>
+      </identifier>
+    </location>
+    <period>
+      <start value="2021-09-28T12:30:00+02:00"/>
+      <end value="2021-09-28T13:00:00+02:00"/>
+    </period>
+  </location>
+  <serviceProvider>
+    <extension url="https://ezdrowie.gov.pl/fhir/StructureDefinition/PLPayorReference">
+      <valueReference>
+        <identifier>
+          <system value="urn:oid:2.16.840.1.113883.3.4424.1.1.616"/>
+          <value value="75061134485"/>
+        </identifier>
+      </valueReference>
+    </extension>
+    <identifier>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.2.3.1"/>
+      <value value="1234567890"/>
+    </identifier>
+  </serviceProvider>
+</Encounter>

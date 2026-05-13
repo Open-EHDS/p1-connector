@@ -5,20 +5,31 @@ require_relative '../../../../test_helper'
 
 describe P1Tool::Application::Builders::Condition::XmlBuilder do
   let(:builder_class) { P1Tool::Application::Builders::Condition::XmlBuilder }
+  let(:data_builder_class) { P1Tool::Application::Builders::Condition::DataBuilder }
+  let(:validator_class) { P1Tool::Application::Contracts::RegisterCondition::PayloadValidator }
   let(:subject) { runtime_subject_config }
   let(:validated_payload) do
-    P1Tool::Application::Contracts::RegisterCondition::PayloadValidator.new.validate!(
+    validator_class.new.validate!(
       payload: fixture_json('runtime', 'register_condition_input.json').fetch('payload'),
       subject:
     )
   end
   let(:data) do
-    P1Tool::Application::Builders::Condition::DataBuilder.new(payload: validated_payload, subject:).call.merge(
+    data_builder_class.new(
+      payload: validated_payload,
+      subject:
+    ).call.merge(
       patient_reference_id: 'pat-123'
     )
   end
 
   describe '#call' do
+    it 'matches the register_condition XML contract fixture' do
+      xml = builder_class.new(data).call
+
+      assert_xml_equal fixture_text('xml', 'register_condition.xml'), xml
+    end
+
     it 'defaults category to main and builds condition xml with location extension and bodySite' do
       xml = builder_class.new(data).call
 
@@ -46,8 +57,10 @@ describe P1Tool::Application::Builders::Condition::XmlBuilder do
       payload = Marshal.load(Marshal.dump(validated_payload))
       payload[:condition][:category] = 'concurrent'
       xml = builder_class.new(
-        P1Tool::Application::Builders::Condition::DataBuilder.new(payload:,
-                                                                  subject:).call.merge(patient_reference_id: 'pat-123')
+        data_builder_class.new(
+          payload:,
+          subject:
+        ).call.merge(patient_reference_id: 'pat-123')
       ).call
 
       document = Nokogiri::XML(xml)
@@ -62,8 +75,10 @@ describe P1Tool::Application::Builders::Condition::XmlBuilder do
       payload = Marshal.load(Marshal.dump(validated_payload))
       payload[:condition].delete(:element_code)
       xml = builder_class.new(
-        P1Tool::Application::Builders::Condition::DataBuilder.new(payload:,
-                                                                  subject:).call.merge(patient_reference_id: 'pat-123')
+        data_builder_class.new(
+          payload:,
+          subject:
+        ).call.merge(patient_reference_id: 'pat-123')
       ).call
 
       document = Nokogiri::XML(xml)

@@ -40,6 +40,7 @@ require 'stringio'
 require 'json'
 require 'fileutils'
 require 'timeout'
+require 'nokogiri'
 
 require_relative '../lib/p1_tool'
 
@@ -218,6 +219,14 @@ module FixtureHelper
 
   def fixture_json(*parts)
     JSON.parse(fixture_text(*parts))
+  end
+
+  def assert_xml_equal(expected_xml, actual_xml)
+    assert_equal canonical_xml(expected_xml), canonical_xml(actual_xml)
+  end
+
+  def canonical_xml(xml)
+    Nokogiri::XML(xml, &:noblanks).canonicalize
   end
 
   def write_config_fixture(target_path, fixture_name:, replacements: {})

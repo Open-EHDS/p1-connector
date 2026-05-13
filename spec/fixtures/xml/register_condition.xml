@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Condition xmlns="http://hl7.org/fhir">
+  <meta>
+    <profile value="https://ezdrowie.gov.pl/fhir/StructureDefinition/PLMedicalEventDiagnosis"/>
+    <security>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.83"/>
+      <code value="N"/>
+    </security>
+  </meta>
+  <extension url="https://ezdrowie.gov.pl/fhir/StructureDefinition/PLLocation">
+    <valueIdentifier>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.2.3.3"/>
+      <value value="1234567890-1234567"/>
+    </valueIdentifier>
+  </extension>
+  <category>
+    <coding>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.78"/>
+      <code value="main"/>
+      <display value="Główne"/>
+    </coding>
+  </category>
+  <code>
+    <coding>
+      <system value="urn:oid:2.16.840.1.113883.6.3"/>
+      <code value="K02"/>
+      <display value="Prochnica zebow"/>
+    </coding>
+  </code>
+  <bodySite>
+    <coding>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.123"/>
+      <code value="85"/>
+      <display value="dolne prawe drugie trzonowce mleczne"/>
+    </coding>
+  </bodySite>
+  <subject>
+    <reference value="Patient/pat-123"/>
+    <type value="Patient"/>
+    <identifier>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.1.1.616"/>
+      <value value="75061134485"/>
+    </identifier>
+  </subject>
+  <encounter>
+    <reference value="Encounter/enc-123"/>
+    <type value="Encounter"/>
+  </encounter>
+  <recordedDate value="2021-09-28T12:30:00+02:00"/>
+  <asserter>
+    <extension url="https://ezdrowie.gov.pl/fhir/StructureDefinition/PLFunction">
+      <valueCoding>
+        <system value="urn:oid:2.16.840.1.113883.3.4424.11.1.80"/>
+        <code value="11"/>
+      </valueCoding>
+    </extension>
+    <identifier>
+      <system value="urn:oid:2.16.840.1.113883.3.4424.1.6.2"/>
+      <value value="5691489"/>
+    </identifier>
+    <display value="Adam739 Leczniczy"/>
+  </asserter>
+</Condition>
