@@ -17,6 +17,12 @@ describe 'continuous mode with compose redis' do
   end
 
   it 'processes inbox file end-to-end using redis started from docker compose' do
+    skip <<~TEXT unless redis_available?(redis_url)
+      Redis is not available at #{redis_url}.
+      Start it with:
+      docker compose -f docker-compose.dev.yml up -d redis
+    TEXT
+
     wait_for_redis(redis_url)
 
     Sidekiq.default_configuration.redis = { url: redis_url }
@@ -58,12 +64,5 @@ describe 'continuous mode with compose redis' do
     ensure
       embedded.stop
     end
-  rescue RuntimeError => e
-    raise <<~TEXT
-      #{e.message}
-
-      Start Redis first with:
-      docker compose -f docker-compose.dev.yml up -d redis
-    TEXT
   end
 end

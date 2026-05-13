@@ -2,6 +2,36 @@
 
 ENV['APP_ENV'] = 'test'
 
+require 'simplecov'
+
+test_files = ARGV.grep(/_test\.rb/)
+integration_test_files = test_files.select { |path| path.start_with?('spec/p1_tool/integration/') }
+simplecov_command_name = if test_files.any? && integration_test_files.size == test_files.size
+                           'Minitest Integration'
+                         elsif integration_test_files.any?
+                           'Minitest Full'
+                         else
+                           'Minitest Unit'
+                         end
+
+SimpleCov.command_name simplecov_command_name
+SimpleCov.use_merging false
+
+SimpleCov.start do
+  enable_coverage :branch
+  primary_coverage :line
+  track_files 'lib/**/*.rb'
+
+  add_filter '/spec/'
+  add_filter '/coverage/'
+  add_filter '/lib/p1_tool/application/live_smoke_runner.rb'
+
+  add_group 'Application', 'lib/p1_tool/application'
+  add_group 'Core', 'lib/p1_tool/core'
+  add_group 'Gateways', 'lib/p1_tool/gateways'
+  add_group 'Runtime', 'lib/p1_tool/runtime'
+end
+
 require 'minitest/autorun'
 require 'minitest/spec'
 require 'minitest/pride' if ENV['MINITEST_PRIDE'] == '1' || $stdout.tty?
@@ -70,7 +100,8 @@ module RuntimeConfigHelper
   )
     Class.new do
       define_method(:initialize) do |encounter_reference_id:, procedure_reference_id:, condition_reference_id:,
-                                     provenance_reference_id:, patient_reference_id:, patient_version_id:, access_token:|
+                                     provenance_reference_id:, patient_reference_id:, patient_version_id:,
+                                     access_token:|
         @encounter_reference_id = encounter_reference_id
         @procedure_reference_id = procedure_reference_id
         @condition_reference_id = condition_reference_id
@@ -103,7 +134,7 @@ module RuntimeConfigHelper
         }
       end
 
-      define_method(:destroy_resource) do |resource_type:, reference_id:|
+      define_method(:destroy_resource) do |**_|
         {
           status: 200,
           body: nil,
@@ -111,7 +142,7 @@ module RuntimeConfigHelper
         }
       end
 
-      define_method(:create_resource) do |resource_type:, xml:|
+      define_method(:create_resource) do |resource_type:, **_|
         case resource_type
         when 'Patient'
           { status: 201, reference_id: 'stub-created-patient', version_id: '1' }
@@ -126,7 +157,7 @@ module RuntimeConfigHelper
         end
       end
 
-      define_method(:update_resource) do |resource_type:, reference_id:, xml:|
+      define_method(:update_resource) do |reference_id:, **_|
         { status: 200, reference_id:, version_id: '2' }
       end
     end.new(
@@ -140,16 +171,19 @@ module RuntimeConfigHelper
     )
   end
 
-  def with_fake_p1_client_factory(client = build_fake_p1_client, &block)
+  def with_fake_p1_client_factory(client = build_fake_p1_client, &)
     with_singleton_stub(
       P1Tool::Gateways::P1::ClientFactory,
       :build,
-      ->(config:, doctor:) { client },
-      &block
+      ->(**_) { client },
+      &
     )
   end
 
-  def with_stubbed_pkcs12_validation(password_envs: { 'WSS_CERT_PASSWORD' => 'secret', 'TLS_CERT_PASSWORD' => 'secret' })
+  def with_stubbed_pkcs12_validation(
+    password_envs: { 'WSS_CERT_PASSWORD' => 'secret', 'TLS_CERT_PASSWORD' => 'secret' },
+    &
+  )
     original = {}
     password_envs.each do |key, value|
       original[key] = ENV.key?(key) ? ENV[key] : :__missing__
@@ -159,10 +193,9 @@ module RuntimeConfigHelper
     with_singleton_stub(
       P1Tool::Gateways::P1::Pkcs12Bundle,
       :load,
-      ->(path:, password:) { Struct.new(:certificate, :key, :ca_certs).new(nil, nil, []) }
-    ) do
-      yield
-    end
+      ->(**_) { Struct.new(:certificate, :key, :ca_certs).new(nil, nil, []) },
+      &
+    )
   ensure
     password_envs.each_key do |key|
       if original[key] == :__missing__
@@ -257,7 +290,28 @@ module FixtureHelper
   rescue Timeout::Error
     raise "Redis at #{url} did not become ready within #{timeout} seconds"
   ensure
-    pool&.shutdown { |conn| conn.close }
+    pool&.shutdown(&:close)
+  end
+
+  def redis_available?(url, timeout: 2)
+    pool = Sidekiq::RedisConnection.create(url:, size: 1)
+
+    Timeout.timeout(timeout) do
+      loop do
+        begin
+          response = pool.with { |conn| conn.call('PING') }
+          return true if response == 'PONG'
+        rescue StandardError
+          nil
+        end
+
+        sleep 0.2
+      end
+    end
+  rescue Timeout::Error
+    false
+  ensure
+    pool&.shutdown(&:close)
   end
 end
 

@@ -13,6 +13,14 @@ Layout/LineLength:
 Metrics/ClassLength:
   Max: 200
 
+Metrics/ModuleLength:
+  Exclude:
+    - 'spec/test_helper.rb'
+
+Metrics/AbcSize:
+  Exclude:
+    - 'spec/test_helper.rb'
+
 Metrics/BlockLength:
   Exclude:
     - 'spec/**/*'
@@ -20,9 +28,12 @@ Metrics/BlockLength:
 
 Metrics/MethodLength:
   Max: 20
+  Exclude:
+    - 'spec/test_helper.rb'
 
 Metrics/ParameterLists:
   Exclude:
+    - 'spec/test_helper.rb'
     - 'lib/p1_tool/runtime/execution_context.rb'
     - 'lib/p1_tool/runtime/task_processor.rb'
 

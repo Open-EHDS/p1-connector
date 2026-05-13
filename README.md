@@ -6,7 +6,7 @@ Lekki runtime Ruby do integracji plikowej z platforma P1.
 
 To narzedzie jest przygotowywane dla integratora, ktory chce uruchamiac zadania wsadowe przekazywane jako pliki JSON i odbierac wynik w postaci pliku JSON oraz wpisow audytowych.
 
-Na obecnym etapie projekt udostepnia lokalny tryb jednorazowego wykonania `run-once`, tryb ciagly `watch` oparty o `Sidekiq`, `sidekiq-cron` i `Redis`, komende operatorska `recover` oraz pomocniczy runner `p1-live-smoke`.
+Na obecnym etapie projekt udostepnia lokalny tryb jednorazowego wykonania `run-once`, tryb ciagly `watch` oparty o `Sidekiq`, `sidekiq-cron` i `Redis`, komende operatorska `recover` oraz pomocnicze narzedzie wdrozeniowe MVP `p1-live-smoke`.
 
 ## Co dziala teraz
 
@@ -42,6 +42,7 @@ Aktualnie dostepne sa:
 
 - Ruby `3.4.9`
 - Bundler
+- Docker i `docker compose` do lokalnego Redisa, trybu `watch` i testu integracyjnego
 
 ## Przygotowanie
 
@@ -160,7 +161,7 @@ W MVP wspierany jest jeden sposob pracy:
 Glowne entrypointy repo:
 
 - `bin/p1-tool` - podstawowe CLI runtime
-- `bin/p1-live-smoke` - sekwencyjny smoke runner dla `Encounter`, opcjonalnie `Procedure`, `Condition` i `Provenance`
+- `bin/p1-live-smoke` - pomocnicze narzedzie wdrozeniowe MVP, poza stalym kontraktem runtime
 
 ### Sprawdzenie konfiguracji
 
@@ -249,25 +250,10 @@ bin/p1-tool help
 bin/p1-tool version
 ```
 
-### Smoke runner
+### Narzedzie wdrozeniowe MVP
 
-```bash
-bin/p1-live-smoke \
-  --config config/config.yml \
-  --input spec/fixtures/runtime/register_encounter_input.json \
-  --procedure-input spec/fixtures/runtime/register_procedure_input.json \
-  --condition-input spec/fixtures/runtime/register_condition_input.json \
-  --provenance-input spec/fixtures/runtime/register_provenance_input.json \
-  --clean
-```
-
-Runner:
-
-- uruchamia `run-once` dla `register_encounter`
-- moze potem odpalic `register_procedure`, `register_condition` i `register_provenance`
-- po wykonaniu probuje usunac utworzone zasoby w odwrotnej kolejnosci: `Provenance`, `Condition`, `Procedure`, `Encounter`
-- zapisuje artefakty do `tmp/live_smoke/...`
-- tymczasowo ustawia `P1_DEBUG_XML=1` i `P1_DEBUG_XML_PATH` na katalog artefaktow danego przebiegu
+`bin/p1-live-smoke` jest pomocniczym narzedziem do wdrazania i recznej weryfikacji MVP.
+Nie jest traktowane jako stabilny kontrakt operacyjny runtime.
 
 ## Kontrakt wejscia
 
@@ -352,9 +338,11 @@ Obecna wersja nie udostepnia jeszcze:
 - podstawowego HTTP API dla runtime
 - UI uzytkowego
 
-## Szybka lokalna weryfikacja
+## Lokalne uruchomienie i weryfikacja krok po kroku
 
-Jesli chcesz szybko sprawdzic aktualny stan aplikacji lokalnie, przejdz ten skrot:
+Ta procedura jest podstawowa sciezka sprawdzenia aplikacji po lokalnym przygotowaniu konfiguracji.
+Scenariusze wykonuj na srodowisku `integration`, z poprawnymi certyfikatami WSS/TLS i haslami w envach wskazanych w `config/config.yml`.
+Scenariusze `run-once` i `watch` z fixture `register_encounter_input.json` wykonuja realne wywolania P1 i moga tworzyc zasoby w srodowisku integracyjnym.
 
 1. przygotuj projekt:
 
@@ -364,33 +352,70 @@ cp config/config.example.yml config/config.yml
 cp .env.example .env
 ```
 
-Nastepnie:
+2. ustaw lokalne sciezki i sekrety w `.env`:
 
-- ustaw `WSS_CERT_PASSWORD` i `TLS_CERT_PASSWORD`
-- dopasuj `P1_CERTIFICATES_BASE_PATH`, jesli certyfikaty nie leza pod `./volumes/certs`
+```dotenv
+P1_DATA_ROOT=./tmp/local/data
+P1_LOGS_ROOT=./tmp/local/logs
+P1_CERTIFICATES_BASE_PATH=/sciezka/do/certyfikatow
+REDIS_URL=redis://127.0.0.1:6379/0
+WSS_CERT_PASSWORD=...
+TLS_CERT_PASSWORD=...
+```
 
-2. zweryfikuj konfiguracje:
+Katalogi `inbox`, `processing`, `done`, `invalid`, `results` i `audit_log` powstana automatycznie.
+Katalogi robocze musza byc na tym samym filesystemie.
+
+3. zweryfikuj konfiguracje:
 
 ```bash
 bin/p1-tool verify --config config/config.yml
 ```
 
-3. sprawdz tryb jednorazowy:
+Oczekiwany efekt:
+
+- kod wyjscia `0`
+- komunikat `Configuration OK`
+
+4. sprawdz tryb jednorazowy `run-once`:
 
 ```bash
 bin/p1-tool run-once \
   --config config/config.yml \
   --input spec/fixtures/runtime/register_encounter_input.json \
-  --output tmp/tester/manual-output.json
+  --output tmp/local/manual-output.json
 ```
 
-4. uruchom Redisa do trybu `watch` i testu integracyjnego:
+Oczekiwany efekt:
+
+- kod wyjscia `0`
+- komunikat `Execution finished with success`
+- plik `tmp/local/manual-output.json`
+- wpisy audytu w `tmp/local/logs/audit.jsonl`
+
+5. sprawdz scenariusz niepoprawnego wejscia:
+
+```bash
+bin/p1-tool run-once \
+  --config config/config.yml \
+  --input spec/fixtures/runtime/invalid_input_missing_operation_kind.json \
+  --output tmp/local/manual-invalid-output.json
+```
+
+Oczekiwany efekt:
+
+- kod wyjscia `1`
+- komunikat `Execution finished with invalid`
+- plik `tmp/local/manual-invalid-output.json`
+- w wyniku `result_kind` ma wartosc `invalid`
+
+6. uruchom Redisa do trybu `watch` i testu integracyjnego:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-5. uruchom tryb ciagly:
+7. uruchom tryb ciagly `watch`:
 
 ```bash
 bin/p1-tool watch \
@@ -399,59 +424,109 @@ bin/p1-tool watch \
   --sidekiq-cron-config config/sidekiq-cron.yml
 ```
 
-6. w drugim terminalu wrzuc plik do `inbox` i potwierdz wynik w `results` oraz przeniesienie pliku do `done`
-7. opcjonalnie sprawdz `recover`:
+Oczekiwany efekt po starcie:
+
+- komunikat `Continuous mode started`
+- polaczenie z Redisem z `redis.url`
+
+8. w drugim terminalu wrzuc plik do `inbox`:
 
 ```bash
+cp spec/fixtures/runtime/register_encounter_input.json tmp/local/data/inbox/task-1.json
+```
+
+Po przetworzeniu sprawdz:
+
+```bash
+find tmp/local -maxdepth 4 -type f | sort
+cat tmp/local/data/results/task-1.json.result.json
+cat tmp/local/logs/audit.jsonl
+```
+
+Oczekiwany efekt:
+
+- plik znika z `inbox`
+- plik pojawia sie w `done/task-1.json`
+- wynik pojawia sie w `results/task-1.json.result.json`
+- wynik ma `result_kind: success`
+- audit ma zdarzenia `execution_started` i `execution_finished`
+
+9. sprawdz scenariusz `invalid` w trybie ciagly:
+
+```bash
+cp spec/fixtures/runtime/invalid_input_missing_operation_kind.json tmp/local/data/inbox/task-invalid.json
+```
+
+Oczekiwany efekt:
+
+- plik pojawia sie w `invalid/task-invalid.json`
+- wynik pojawia sie w `results/task-invalid.json.result.json`
+- wynik ma `result_kind: invalid`
+
+10. zatrzymaj proces `watch` przez `Ctrl+C`, a potem opcjonalnie sprawdz `recover`:
+
+```bash
+mkdir -p tmp/local/data/processing
+cp spec/fixtures/runtime/register_encounter_input.json tmp/local/data/processing/task-recover.json
 bin/p1-tool recover --config config/config.yml
 ```
 
-Pelna checklista testera, razem z oczekiwanymi rezultatami, scenariuszem `invalid`, recovery i sprzataniem, jest w [docs/tester-local-checklist.md](docs/tester-local-checklist.md).
+Oczekiwany efekt:
 
-8. opcjonalnie uruchom pelniejszy smoke flow:
+- komunikat `Recovery finished`
+- komunikat `Recovered files: 1`
+- plik znika z `processing`
+- plik pojawia sie w `inbox/task-recover.json`
+
+11. zatrzymaj Redisa i wyczysc lokalne artefakty, jesli nie sa juz potrzebne:
 
 ```bash
-bin/p1-live-smoke \
-  --config config/config.yml \
-  --input spec/fixtures/runtime/register_encounter_input.json \
-  --procedure-input spec/fixtures/runtime/register_procedure_input.json \
-  --condition-input spec/fixtures/runtime/register_condition_input.json \
-  --provenance-input spec/fixtures/runtime/register_provenance_input.json \
-  --clean
+docker compose -f docker-compose.dev.yml down
+rm -rf tmp/local
 ```
+
+`bin/p1-live-smoke` moze byc uzyte pomocniczo przy wdrazaniu MVP, ale nie jest podstawowa procedura testera.
 
 ## Testy
 
-Pelny zestaw testow uruchamia takze test integracyjny z prawdziwym `redis`, ale sam test nie podnosi uslugi.
-Najpierw developer uruchamia `redis` z compose:
+Szybki zestaw jednostkowy:
+
+```bash
+bundle exec rake test:unit
+```
+
+Testy generuja raport pokrycia w `coverage/index.html`.
+Na tym etapie coverage jest metryka informacyjna i nie blokuje uruchomienia testow minimalnym progiem.
+
+Test integracyjny trybu ciaglego uzywa prawdziwego `redis`, ale sam test nie podnosi uslugi.
+Jesli `redis` nie dziala, test integracyjny zostanie oznaczony jako `skip`.
+
+Uruchomienie Redisa:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-Potem mozna uruchomic:
+Test integracyjny:
+
+```bash
+bundle exec rake test:integration
+```
+
+Pelny lokalny zestaw:
 
 ```bash
 bundle exec rake test
 ```
 
-Dostepne sa tez rozbite taski:
-
-```bash
-bundle exec rake test:unit
-bundle exec rake test:integration
-```
-
-To oznacza, ze pelne lokalne uruchomienie testow wymaga:
+Pelne lokalne uruchomienie z wykonanym testem integracyjnym wymaga:
 
 - dzialajacego Dockera
 - dostepnego `docker compose`
-
-Jesli potrzebujesz pelnej procedury manualnej, a nie tylko uruchomienia testow automatycznych, zobacz [docs/tester-local-checklist.md](docs/tester-local-checklist.md).
+- uruchomionego `redis` z `docker-compose.dev.yml`
 
 ## Pliki referencyjne
 
 - `config/config.example.yml` - przykladowa konfiguracja
 - `.env.example` - przykladowe zmienne srodowiskowe
-- `docs/tester-local-checklist.md` - pelna lokalna checklista testera
 - `plan.md` - glowny opis kierunku projektu

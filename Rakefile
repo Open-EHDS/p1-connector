@@ -5,7 +5,7 @@ require 'shellwords'
 
 all_tests = FileList['spec/**/*_test.rb']
 integration_tests = FileList['spec/p1_tool/integration/**/*_test.rb']
-unit_tests = all_tests.exclude(*integration_tests)
+unit_tests = FileList['spec/**/*_test.rb'].exclude(*integration_tests)
 compose_file = File.expand_path('docker-compose.dev.yml', __dir__)
 
 def compose_command(compose_file, *args)
