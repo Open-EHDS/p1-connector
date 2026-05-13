@@ -8,13 +8,12 @@ module P1Tool
           private
 
           def meta(xml)
-            xml.meta do
-              xml.profile(value: constants::PROFILE)
-              xml.security do
-                xml.system(value: constants::SECURITY_SYSTEM)
-                xml.code(value: constants::DEFAULT_SECURITY_CODE)
-              end
-            end
+            fhir_meta(
+              xml,
+              profile: constants::PROFILE,
+              security_system: constants::SECURITY_SYSTEM,
+              security_code: constants::DEFAULT_SECURITY_CODE
+            )
           end
 
           def encounter_class(xml)
@@ -26,12 +25,13 @@ module P1Tool
           end
 
           def subject(xml)
-            xml.subject do
-              xml.reference(value: "Patient/#{data[:patient_reference_id]}")
-              xml.type(value: 'Patient')
-              identifier(xml, system: constants.patient_pesel_system, value: data[:patient_pesel])
-              display(xml, data[:patient_name])
-            end
+            patient_subject(
+              xml,
+              reference_id: data[:patient_reference_id],
+              pesel_system: constants.patient_pesel_system,
+              pesel: data[:patient_pesel],
+              display_name: data[:patient_name]
+            )
           end
 
           def episode_of_care(xml)
@@ -48,12 +48,12 @@ module P1Tool
           end
 
           def participant_function(xml)
-            xml.extension(url: constants::PL_FUNCTION_EXTENSION) do
-              xml.valueCoding do
-                xml.system(value: constants::DOCTOR_PROFESSION_SYSTEM)
-                xml.code(value: data[:doctor_profession_number])
-              end
-            end
+            doctor_function_extension(
+              xml,
+              profession_number: data[:doctor_profession_number],
+              extension_url: constants::PL_FUNCTION_EXTENSION,
+              profession_system: constants::DOCTOR_PROFESSION_SYSTEM
+            )
           end
 
           def participant_individual(xml)

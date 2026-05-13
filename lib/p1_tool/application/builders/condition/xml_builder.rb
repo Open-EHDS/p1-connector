@@ -41,13 +41,12 @@ module P1Tool
           end
 
           def meta(xml)
-            xml.meta do
-              xml.profile(value: constants::PROFILE)
-              xml.security do
-                xml.system(value: constants::SECURITY_SYSTEM)
-                xml.code(value: constants::DEFAULT_SECURITY_CODE)
-              end
-            end
+            fhir_meta(
+              xml,
+              profile: constants::PROFILE,
+              security_system: constants::SECURITY_SYSTEM,
+              security_code: constants::DEFAULT_SECURITY_CODE
+            )
           end
 
           def location_extension(xml)
@@ -80,40 +79,35 @@ module P1Tool
           end
 
           def body_site(xml)
-            return if blank?(data[:element_code])
-
-            xml.bodySite do
-              xml.coding do
-                xml.system(value: data[:element_system])
-                xml.code(value: data[:element_code])
-                display(xml, data[:element_display])
-              end
-            end
+            fhir_body_site(
+              xml,
+              code: data[:element_code],
+              system: data[:element_system],
+              display_value: data[:element_display]
+            )
           end
 
           def subject(xml)
-            xml.subject do
-              xml.reference(value: "Patient/#{data[:patient_reference_id]}")
-              xml.type(value: 'Patient')
-              identifier(xml, system: constants.patient_pesel_system, value: data[:patient_pesel])
-            end
+            patient_subject(
+              xml,
+              reference_id: data[:patient_reference_id],
+              pesel_system: constants.patient_pesel_system,
+              pesel: data[:patient_pesel]
+            )
           end
 
           def encounter(xml)
-            xml.encounter do
-              xml.reference(value: "Encounter/#{data[:encounter_reference_id]}")
-              xml.type(value: 'Encounter')
-            end
+            encounter_reference(xml, reference_id: data[:encounter_reference_id])
           end
 
           def asserter(xml)
             xml.asserter do
-              xml.extension(url: constants::PL_FUNCTION_EXTENSION) do
-                xml.valueCoding do
-                  xml.system(value: constants::DOCTOR_PROFESSION_SYSTEM)
-                  xml.code(value: data[:doctor_profession_number])
-                end
-              end
+              doctor_function_extension(
+                xml,
+                profession_number: data[:doctor_profession_number],
+                extension_url: constants::PL_FUNCTION_EXTENSION,
+                profession_system: constants::DOCTOR_PROFESSION_SYSTEM
+              )
               identifier(xml, system: data[:doctor_identifier_system], value: data[:doctor_identifier_value])
               display(xml, data[:doctor_name])
             end

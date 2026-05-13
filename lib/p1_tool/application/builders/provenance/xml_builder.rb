@@ -37,13 +37,12 @@ module P1Tool
           end
 
           def meta(xml)
-            xml.meta do
-              xml.profile(value: constants::PROFILE)
-              xml.security do
-                xml.system(value: constants::SECURITY_SYSTEM)
-                xml.code(value: constants::DEFAULT_SECURITY_CODE)
-              end
-            end
+            fhir_meta(
+              xml,
+              profile: constants::PROFILE,
+              security_system: constants::SECURITY_SYSTEM,
+              security_code: constants::DEFAULT_SECURITY_CODE
+            )
           end
 
           def targets(xml)
