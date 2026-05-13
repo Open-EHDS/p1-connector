@@ -67,6 +67,7 @@ Wazne:
 
 - `bin/p1-tool` automatycznie laduje `.env`, jesli plik istnieje
 - zanim uruchomisz `verify`, `run-once` albo `watch`, ustaw poprawne `WSS_CERT_PASSWORD` i `TLS_CERT_PASSWORD`
+- `recover` nie wymaga hasel do certyfikatow ani dostepu do P1; laduje konfiguracje bez walidacji runtime
 - dopasuj `P1_CERTIFICATES_BASE_PATH` do miejsca, w ktorym masz certyfikaty; przykladowy `config/config.example.yml` domyslnie wskazuje `./volumes/certs`
 
 4. Jesli chcesz uruchomic Redisa przez Docker Compose:
@@ -172,6 +173,7 @@ Komenda:
 - waliduje wymagane pola
 - sprawdza wymagane envy z haslami do certyfikatow
 - probuje otworzyc oba pliki PKCS#12
+- potwierdza gotowosc runtime dla komend korzystajacych z integracji P1
 - zwraca kod `0`, jesli konfiguracja jest poprawna
 
 ### Przetworzenie jednego pliku
@@ -234,9 +236,10 @@ bin/p1-tool recover --config config/config.yml
 
 Komenda:
 
-- laduje konfiguracje aplikacji
+- laduje konfiguracje aplikacji bez walidacji runtime
 - przygotowuje workspace
 - przenosi zalegle pliki z `processing` z powrotem do `inbox`
+- nie wymaga walidacji certyfikatow ani dostepu do P1
 
 ### Pozostale komendy CLI
 

@@ -25,7 +25,7 @@ module P1Tool
 
       def start
         options, parser = parse_options(@argv)
-        config = P1Tool::Core::ConfigurationLoader.load(options[:config_path])
+        config = load_runtime_configuration(options[:config_path])
         run_dir = resolve_run_dir(options)
 
         prepare_run_dir(run_dir, clean: options[:clean])
@@ -129,6 +129,11 @@ module P1Tool
         raise OptionParser::InvalidArgument, '--audit-tail must be greater than 0' if options[:audit_tail].to_i <= 0
 
         [options, parser]
+      end
+
+      def load_runtime_configuration(config_path)
+        config = P1Tool::Core::ConfigurationLoader.load(config_path)
+        P1Tool::Core::RuntimeConfigurationValidator.validate!(config, path: config_path)
       end
 
       def resolve_run_dir(options)

@@ -42,10 +42,15 @@ module P1Tool
 
       def load_configs
         [
-          P1Tool::Core::ConfigurationLoader.load(@config_path),
+          load_runtime_configuration,
           P1Tool::Runtime::SidekiqConfigLoader.load(@sidekiq_config_path),
           P1Tool::Runtime::SidekiqConfigLoader.load(@sidekiq_cron_config_path)
         ]
+      end
+
+      def load_runtime_configuration
+        config = P1Tool::Core::ConfigurationLoader.load(@config_path)
+        P1Tool::Core::RuntimeConfigurationValidator.validate!(config, path: @config_path)
       end
 
       def build_embedded_instance(app_config, sidekiq_config, cron_schedule)

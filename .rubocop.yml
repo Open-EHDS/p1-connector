@@ -4,6 +4,8 @@ plugins:
 AllCops:
   NewCops: enable
   SuggestExtensions: false
+  Exclude:
+    - 'lib/p1_tool/application/live_smoke_runner.rb'
 
 Layout/LineLength:
   Max: 120

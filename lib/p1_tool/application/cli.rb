@@ -58,7 +58,7 @@ module P1Tool
 
       def run_verify(argv)
         options, parser = parse_verify_options(argv)
-        config = load_configuration(options[:config_path])
+        config = load_runtime_configuration(options[:config_path])
 
         print_verify_summary(config, options[:config_path])
         0
@@ -165,9 +165,14 @@ module P1Tool
 
       def load_configuration(config_path) = P1Tool::Core::ConfigurationLoader.load(config_path)
 
+      def load_runtime_configuration(config_path)
+        config = load_configuration(config_path)
+        P1Tool::Core::RuntimeConfigurationValidator.validate!(config, path: config_path)
+      end
+
       def build_task_processor(options)
         P1Tool::Runtime::TaskProcessor.new(
-          load_configuration(options[:config_path]),
+          load_runtime_configuration(options[:config_path]),
           input_path: options[:input_path],
           output_path: options[:output_path]
         )

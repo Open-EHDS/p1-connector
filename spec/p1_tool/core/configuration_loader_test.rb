@@ -4,6 +4,40 @@ require_relative '../../test_helper'
 
 describe P1Tool::Core::ConfigurationLoader do
   describe '.load' do
+    it 'does not run runtime certificate checks' do
+      Dir.mktmpdir do |dir|
+        config_path = File.join(dir, 'config.yml')
+        write_config_fixture(
+          config_path,
+          fixture_name: 'runtime_config.yml',
+          replacements: { '__AUDIT_LOG_PATH__' => '/logs/audit.jsonl' }
+        )
+
+        original_wss = ENV.fetch('WSS_CERT_PASSWORD', nil)
+        original_tls = ENV.fetch('TLS_CERT_PASSWORD', nil)
+        ENV.delete('WSS_CERT_PASSWORD')
+        ENV.delete('TLS_CERT_PASSWORD')
+
+        load_calls = []
+        config = with_singleton_stub(
+          P1Tool::Gateways::P1::Pkcs12Bundle,
+          :load,
+          lambda do |path:, password:|
+            load_calls << { path:, password: }
+            Struct.new(:certificate, :key, :ca_certs).new(nil, nil, [])
+          end
+        ) do
+          P1Tool::Core::ConfigurationLoader.load(config_path)
+        end
+
+        assert_equal '/data/inbox', config.dig(:paths, :inbox)
+        assert_equal [], load_calls
+      ensure
+        ENV['WSS_CERT_PASSWORD'] = original_wss
+        ENV['TLS_CERT_PASSWORD'] = original_tls
+      end
+    end
+
     it 'returns symbolized config hash' do
       Dir.mktmpdir do |dir|
         config_path = File.join(dir, 'config.yml')
@@ -224,40 +258,9 @@ describe P1Tool::Core::ConfigurationLoader do
         end
 
         assert_match('Invalid ERB', error.message)
-        assert_match("key not found: \"REDIS_URL\"", error.message)
+        assert_match('key not found: "REDIS_URL"', error.message)
       ensure
         ENV['REDIS_URL'] = original_redis_url
-      end
-    end
-
-    it 'raises when certificate password env is missing' do
-      Dir.mktmpdir do |dir|
-        config_path = File.join(dir, 'config.yml')
-        write_config_fixture(
-          config_path,
-          fixture_name: 'runtime_config.yml',
-          replacements: { '__AUDIT_LOG_PATH__' => '/logs/audit.jsonl' }
-        )
-
-        original_wss = ENV.fetch('WSS_CERT_PASSWORD', nil)
-        original_tls = ENV.fetch('TLS_CERT_PASSWORD', nil)
-        ENV.delete('WSS_CERT_PASSWORD')
-        ENV['TLS_CERT_PASSWORD'] = 'secret'
-
-        error = assert_raises(P1Tool::ConfigurationError) do
-          with_singleton_stub(
-            P1Tool::Gateways::P1::Pkcs12Bundle,
-            :load,
-            ->(path:, password:) { Struct.new(:certificate, :key, :ca_certs).new(nil, nil, []) }
-          ) do
-            P1Tool::Core::ConfigurationLoader.load(config_path)
-          end
-        end
-
-        assert_equal ['environment variable WSS_CERT_PASSWORD is missing'], error.details.dig(:certificates, :wss, :password_env)
-      ensure
-        ENV['WSS_CERT_PASSWORD'] = original_wss
-        ENV['TLS_CERT_PASSWORD'] = original_tls
       end
     end
   end

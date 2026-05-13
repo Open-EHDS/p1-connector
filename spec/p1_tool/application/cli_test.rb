@@ -185,6 +185,45 @@ describe P1Tool::CLI do
         refute_path_exists processing_path
         assert_empty stderr.string
       end
+
+      it 'does not require certificate password envs' do
+        config = runtime_config_for(tmpdir, audit_log_path:)
+        File.write(config_path, YAML.dump(JSON.parse(JSON.generate(config))))
+        processing_path = File.join(config.dig(:paths, :processing), 'task-2.json')
+        FileUtils.mkdir_p(File.dirname(processing_path))
+        File.write(processing_path, "{\"task_id\":\"2\"}\n")
+
+        original_wss = ENV.fetch('WSS_CERT_PASSWORD', nil)
+        original_tls = ENV.fetch('TLS_CERT_PASSWORD', nil)
+        ENV.delete('WSS_CERT_PASSWORD')
+        ENV.delete('TLS_CERT_PASSWORD')
+
+        load_calls = []
+        exit_code = with_singleton_stub(
+          P1Tool::Gateways::P1::Pkcs12Bundle,
+          :load,
+          lambda do |path:, password:|
+            load_calls << { path:, password: }
+            Struct.new(:certificate, :key, :ca_certs).new(nil, nil, [])
+          end
+        ) do
+          P1Tool::CLI.start(
+            ['recover', '--config', config_path],
+            stdout: stdout,
+            stderr: stderr
+          )
+        end
+
+        assert_equal 0, exit_code
+        assert_equal [], load_calls
+        assert_includes stdout.string, 'Recovery finished'
+        assert_path_exists File.join(config.dig(:paths, :inbox), 'task-2.json')
+        refute_path_exists processing_path
+        assert_empty stderr.string
+      ensure
+        ENV['WSS_CERT_PASSWORD'] = original_wss
+        ENV['TLS_CERT_PASSWORD'] = original_tls
+      end
     end
   end
 end
