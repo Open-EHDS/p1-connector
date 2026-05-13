@@ -86,8 +86,6 @@ module P1Tool
           submission_class.new(
             xml: build_xml(encounter_data, patient_result),
             encounter_data:,
-            patient_result:,
-            subject: subject_config,
             client: resolved_p1_client(validated_payload)
           ).call
         end
