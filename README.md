@@ -609,6 +609,16 @@ bundle exec rake quality:full
 
 Zadanie `test:signature` uzywa projektowego cache Gradle w `tmp/gradle`, zeby nie wymagac zapisu do `~/.gradle`.
 
+## CI
+
+Repozytorium ma pipeline GitHub Actions w `.github/workflows/ci.yml`.
+
+Pipeline uruchamia:
+
+- `Ruby quality` - `bundle exec rake quality`
+- `Ruby Redis integration` - `bundle exec rake test:integration` z usluga `redis`
+- `Signature tool` - `./gradlew test` w `services/signature-tool`
+
 Pelne lokalne uruchomienie z wykonanym testem integracyjnym wymaga:
 
 - dzialajacego Dockera

@@ -17,11 +17,15 @@ describe 'continuous mode with compose redis' do
   end
 
   it 'processes inbox file end-to-end using redis started from docker compose' do
-    skip <<~TEXT unless redis_available?(redis_url)
-      Redis is not available at #{redis_url}.
-      Start it with:
-      docker compose -f docker-compose.dev.yml up -d redis
-    TEXT
+    unless redis_available?(redis_url)
+      message = <<~TEXT
+        Redis is not available at #{redis_url}.
+        Start it with:
+        docker compose -f docker-compose.dev.yml up -d redis
+      TEXT
+
+      ENV.fetch('REQUIRE_REDIS_INTEGRATION', nil) == '1' ? flunk(message) : skip(message)
+    end
 
     wait_for_redis(redis_url)
 
