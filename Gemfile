@@ -19,6 +19,7 @@ end
 group :development do
   gem 'rubocop', require: false
   gem 'rubocop-minitest', require: false
+  gem 'rubocop-rake', '~> 0.7.1', require: false
 end
 
 group :test do

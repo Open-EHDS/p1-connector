@@ -1,10 +1,12 @@
 plugins:
   - rubocop-minitest
+  - rubocop-rake
 
 AllCops:
   NewCops: enable
   SuggestExtensions: false
   Exclude:
+    - 'vendor/bundle/**/*'
     - 'lib/p1_tool/application/live_smoke_runner.rb'
 
 Layout/LineLength:
