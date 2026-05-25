@@ -1,100 +1,100 @@
 # p1-connector
 
-Lekki runtime Ruby do integracji plikowej z platforma P1.
+A lightweight Ruby runtime for file-based integration with the P1 platform.
 
-## Dla kogo jest ten projekt
+## Who This Project Is For
 
-To narzedzie jest przygotowywane dla integratora, ktory chce uruchamiac zadania wsadowe przekazywane jako pliki JSON i odbierac wynik w postaci pliku JSON oraz wpisow audytowych.
+This tool is being prepared for an integrator who wants to run batch tasks provided as JSON files and receive results as JSON files plus audit entries.
 
-Na obecnym etapie projekt udostepnia lokalny tryb jednorazowego wykonania `run-once`, tryb ciagly `watch` oparty o `Sidekiq`, `sidekiq-cron` i `Redis`, komende operatorska `recover` oraz pomocnicze narzedzie wdrozeniowe MVP `p1-live-smoke`.
+At the current stage, the project provides a local one-shot `run-once` mode, a continuous `watch` mode based on `Sidekiq`, `sidekiq-cron`, and `Redis`, the operator `recover` command, and the helper MVP deployment tool `p1-live-smoke`.
 
-## Co dziala teraz
+## What Works Now
 
-Aktualnie dostepne sa:
+Currently available:
 
-- walidacja konfiguracji z pliku YAML
-- wybor srodowiska P1: `integration` (`isus.ezdrowie.gov.pl`) albo `production` (`sus.ezdrowie.gov.pl`)
-- komunikacja z P1 oparta o JWT WSS + mutual TLS
-- przetworzenie pojedynczego pliku JSON w trybie `run-once`
-- tryb ciagly `watch` z embedded `Sidekiq`
-- cykliczne skanowanie `inbox` przez `sidekiq-cron`
-- enqueue joba przetwarzajacego po atomowym przejeciu pliku `inbox -> processing`
-- minimalna polityka retry dla bledow technicznych: maksymalnie 2 proby lacznie
-- walidacja minimalnego kontraktu wejscia
-- operacje biznesowe:
+- YAML configuration file validation
+- P1 environment selection: `integration` (`isus.ezdrowie.gov.pl`) or `production` (`sus.ezdrowie.gov.pl`)
+- P1 communication based on WSS JWT + mutual TLS
+- processing a single JSON file in `run-once` mode
+- continuous `watch` mode with embedded `Sidekiq`
+- periodic `inbox` scanning through `sidekiq-cron`
+- enqueueing a processing job after an atomic `inbox -> processing` file takeover
+- minimal retry policy for technical errors: at most 2 attempts total
+- minimal input contract validation
+- business operations:
   - `register_encounter`
   - `register_procedure`
   - `register_condition`
   - `register_provenance`
   - `get_resource`
   - `destroy_resource`
-- realna integracja `register_encounter` z P1:
-  - pobranie tokenu
-  - wyszukanie pacjenta
-  - utworzenie pacjenta, jesli nie istnieje
-  - utworzenie albo aktualizacja `Encounter`
-- realna integracja `register_procedure`, `register_condition` i `register_provenance` z P1
-- realna integracja z `signature-service` dla `register_provenance`
-- zapis wyniku do pliku JSON
-- zapis audytu technicznego do pliku JSON Lines
+- real `register_encounter` integration with P1:
+  - token retrieval
+  - patient lookup
+  - patient creation if the patient does not exist
+  - `Encounter` creation or update
+- real `register_procedure`, `register_condition`, and `register_provenance` integration with P1
+- real integration with `signature-service` for `register_provenance`
+- writing the result to a JSON file
+- writing technical audit data to a JSON Lines file
 
-## Wymagania
+## Requirements
 
-- Docker i `docker compose` dla domyslnego uruchomienia bez lokalnego Ruby
-- Ruby `3.4.9` i Bundler tylko dla wariantu z lokalnym Ruby
+- Docker and `docker compose` for the default setup without local Ruby
+- Ruby `3.4.9` and Bundler only for the local Ruby variant
 
-## Przygotowanie dla lokalnego Ruby
+## Local Ruby Setup
 
-1. Zainstaluj zaleznosci:
+1. Install dependencies:
 
 ```bash
 bundle install
 ```
 
-2. Przygotuj konfiguracje aplikacji:
+2. Prepare the application configuration:
 
 ```bash
 cp config/config.example.yml config/config.yml
 ```
 
-3. Opcjonalnie przygotuj lokalne zmienne srodowiskowe na podstawie `.env.example`:
+3. Optionally prepare local environment variables based on `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Wazne:
+Important:
 
-- `bin/p1-tool` automatycznie laduje `.env`, jesli plik istnieje
-- zanim uruchomisz `verify`, `run-once` albo `watch`, ustaw poprawne `WSS_CERT_PASSWORD` i `TLS_CERT_PASSWORD`
-- `recover` nie wymaga hasel do certyfikatow ani dostepu do P1; laduje konfiguracje bez walidacji runtime
-- dopasuj `P1_CERTIFICATES_BASE_PATH` do miejsca, w ktorym masz certyfikaty; przykladowy `config/config.example.yml` domyslnie wskazuje `./volumes/certs`
+- `bin/p1-tool` automatically loads `.env` if the file exists
+- before running `verify`, `run-once`, or `watch`, set valid `WSS_CERT_PASSWORD` and `TLS_CERT_PASSWORD`
+- `recover` does not require certificate passwords or P1 access; it loads configuration without runtime validation
+- adjust `P1_CERTIFICATES_BASE_PATH` to the location of your certificates; the example `config/config.example.yml` points to `./volumes/certs` by default
 
-4. Jesli chcesz uruchomic Redisa przez Compose dla lokalnego Ruby:
+4. If you want to run Redis through Compose for local Ruby:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-Plik `.env.example` opisuje lokalny model uruchomienia Ruby. `docker-compose.dev.yml` sluzy tylko do wystawienia lokalnych uslug pomocniczych.
+The `.env.example` file describes the local Ruby runtime model. `docker-compose.dev.yml` is only used to expose local helper services.
 
-## Konfiguracja
+## Configuration
 
-Przykladowa konfiguracja znajduje sie w `config/config.example.yml`.
+Example configuration is available in `config/config.example.yml`.
 
-Konfiguracja obejmuje:
+Configuration covers:
 
-- katalogi robocze: `inbox`, `processing`, `done`, `invalid`, `results`
-- sciezke do pliku audytowego `audit_log`
-- ustawienia `redis`
-- konfiguracje `Sidekiq` w `config/sidekiq.yml`
-- harmonogram `sidekiq-cron` w `config/sidekiq-cron.yml`
-- adres `signature_service`
-- konfiguracje P1 w sekcji `p1`
-- dane `subject`
-- konfiguracje certyfikatow `wss` i `tls`
+- working directories: `inbox`, `processing`, `done`, `invalid`, `results`
+- path to the `audit_log` file
+- `redis` settings
+- `Sidekiq` configuration in `config/sidekiq.yml`
+- `sidekiq-cron` schedule in `config/sidekiq-cron.yml`
+- `signature_service` address
+- P1 configuration in the `p1` section
+- `subject` data
+- `wss` and `tls` certificate configuration
 
-Pola wymagane przez schemat konfiguracji:
+Fields required by the configuration schema:
 
 - `paths.inbox`, `paths.processing`, `paths.done`, `paths.invalid`, `paths.results`, `paths.audit_log`
 - `redis.url`
@@ -105,76 +105,76 @@ Pola wymagane przez schemat konfiguracji:
 - `certificates.wss.filename`, `certificates.wss.password_env`
 - `certificates.tls.filename`, `certificates.tls.password_env`
 
-Wazne:
+Important:
 
-- dla trybu `run-once` wynik jest zapisywany pod sciezka przekazana parametrem `--output`
-- plik audytowy jest zapisywany pod sciezka `paths.audit_log` z konfiguracji
-- katalogi robocze `inbox`, `processing`, `done`, `invalid` i `results` musza znajdowac sie na tym samym filesystemie; runtime przenosi pliki przez atomowe `rename`
-- debugowe XML-e moga byc zapisywane po ustawieniu `P1_DEBUG_XML=1`; katalog mozna nadpisac przez `P1_DEBUG_XML_PATH`
-- `p1.environment` przelacza host docelowy:
+- in `run-once` mode, the result is written to the path passed through `--output`
+- the audit file is written to the `paths.audit_log` path from configuration
+- working directories `inbox`, `processing`, `done`, `invalid`, and `results` must be on the same filesystem; the runtime moves files with atomic `rename`
+- debug XML files can be written after setting `P1_DEBUG_XML=1`; the directory can be overridden with `P1_DEBUG_XML_PATH`
+- `p1.environment` switches the target host:
   - `integration` -> `https://isus.ezdrowie.gov.pl`
   - `production` -> `https://sus.ezdrowie.gov.pl`
-- konfiguracja jest walidowana semantycznie przy starcie:
-  - sprawdzenie wymaganych envow z haslami
-  - sprawdzenie odczytu plikow `wss` i `tls`
-  - proba otwarcia obu plikow PKCS#12
-- katalogi `inbox`, `processing`, `done`, `invalid`, `results` sa juz czescia modelu konfiguracji, ale pelny lifecycle katalogowy bedzie wykorzystywany przez tryb ciagly
-- `config/config.example.yml` mozna odpalic lokalnie bez zmian, albo nadpisac katalogi przez `.env`
-- najprostszy model to ustawienie `P1_DATA_ROOT`, `P1_LOGS_ROOT` i `P1_CERTIFICATES_BASE_PATH`
-- jesli integrator chce pelnej kontroli, moze nadpisac kazda sciezke osobno przez `P1_INBOX_PATH`, `P1_PROCESSING_PATH`, `P1_DONE_PATH`, `P1_INVALID_PATH`, `P1_RESULTS_PATH` i `P1_AUDIT_LOG_PATH`
-- hasla do certyfikatow sa czytane z envow wskazanych przez:
+- configuration is semantically validated on startup:
+  - required password environment variables are checked
+  - `wss` and `tls` files are checked for readability
+  - both PKCS#12 files are opened
+- `inbox`, `processing`, `done`, `invalid`, and `results` directories are already part of the configuration model, but the full directory lifecycle is used by continuous mode
+- `config/config.example.yml` can be run locally without changes, or directories can be overridden through `.env`
+- the simplest model is to set `P1_DATA_ROOT`, `P1_LOGS_ROOT`, and `P1_CERTIFICATES_BASE_PATH`
+- if an integrator wants full control, each path can be overridden individually with `P1_INBOX_PATH`, `P1_PROCESSING_PATH`, `P1_DONE_PATH`, `P1_INVALID_PATH`, `P1_RESULTS_PATH`, and `P1_AUDIT_LOG_PATH`
+- certificate passwords are read from the environment variables indicated by:
   - `certificates.wss.password_env`
   - `certificates.tls.password_env`
 
 ## Docker Compose
 
-W repo sa dwa warianty Compose:
+The repository contains two Compose variants:
 
-- [docker-compose.yml](docker-compose.yml) - domyslny wariant bez lokalnego Ruby, z usluga `p1-connector`
-- [docker-compose.dev.yml](docker-compose.dev.yml) - uslugi pomocnicze dla pracy z lokalnym Ruby
+- [docker-compose.yml](docker-compose.yml) - the default variant without local Ruby, with the `p1-connector` service
+- [docker-compose.dev.yml](docker-compose.dev.yml) - helper services for working with local Ruby
 
-Domyslny [docker-compose.yml](docker-compose.yml) zawiera:
+The default [docker-compose.yml](docker-compose.yml) includes:
 
-- `p1-connector` - obraz Ruby z aplikacja, domyslnie uruchamia `watch`
-- `redis` - gotowy do uzycia przez `Sidekiq`
-- `signature-tool` - opcjonalny lokalny `signature-service` pod profilem `signature`
+- `p1-connector` - a Ruby image with the application, running `watch` by default
+- `redis` - ready for `Sidekiq`
+- `signature-tool` - an optional local `signature-service` under the `signature` profile
 
-W trybie kontenerowym aplikacja uzywa sciezek wewnatrz kontenera:
+In container mode, the application uses paths inside the container:
 
-- dane: `/data`
-- logi: `/logs`
-- certyfikaty: `/certs`
+- data: `/data`
+- logs: `/logs`
+- certificates: `/certs`
 - Redis: `redis://redis:6379/0`
 
-Hostowe katalogi montowane do kontenera ustawia sie przez `.env.compose`.
+Host directories mounted into the container are configured through `.env.compose`.
 
-Przygotowanie:
+Preparation:
 
 ```bash
 cp config/config.example.yml config/config.yml
 cp .env.compose.example .env.compose
 ```
 
-W `.env.compose` ustaw przede wszystkim:
+In `.env.compose`, set at least:
 
 - `P1_HOST_CERTIFICATES_PATH`
 - `WSS_CERT_PASSWORD`
 - `TLS_CERT_PASSWORD`
 
-Budowanie obrazu:
+Build the image:
 
 ```bash
 docker compose --env-file .env.compose build p1-connector
 ```
 
-Sprawdzenie konfiguracji:
+Check configuration:
 
 ```bash
 docker compose --env-file .env.compose run --rm -T p1-connector \
   verify --config config/config.yml
 ```
 
-Przetworzenie jednego pliku:
+Process one file:
 
 ```bash
 docker compose --env-file .env.compose run --rm -T p1-connector \
@@ -184,26 +184,26 @@ docker compose --env-file .env.compose run --rm -T p1-connector \
   --output /data/manual-output.json
 ```
 
-Tryb ciagly:
+Continuous mode:
 
 ```bash
 docker compose --env-file .env.compose up p1-connector
 ```
 
-W drugim terminalu wrzuc plik do hostowego katalogu danych:
+In a second terminal, put a file into the host data directory:
 
 ```bash
 cp spec/fixtures/runtime/register_encounter_input.json var/data/inbox/task-1.json
 ```
 
-Testy w kontenerze:
+Tests in the container:
 
 ```bash
 docker compose --env-file .env.compose run --rm -T --entrypoint bundle p1-connector \
   exec rake test
 ```
 
-Jesli chcesz uruchomic lokalny `signature-tool` dla `register_provenance`, dodaj profil:
+If you want to run the local `signature-tool` for `register_provenance`, add the profile:
 
 ```bash
 docker compose --env-file .env.compose --profile signature up p1-connector signature-tool
@@ -211,72 +211,72 @@ docker compose --env-file .env.compose --profile signature up p1-connector signa
 
 ### Redis
 
-Start tylko Redisa dla lokalnego Ruby:
+Start only Redis for local Ruby:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-Zatrzymanie:
+Stop it:
 
 ```bash
 docker compose -f docker-compose.dev.yml down
 ```
 
-Testy integracyjne uruchamiane z lokalnego Ruby zakladaja, ze `redis` jest podnoszony z [docker-compose.dev.yml](docker-compose.dev.yml).
+Integration tests run from local Ruby assume that `redis` is started from [docker-compose.dev.yml](docker-compose.dev.yml).
 
-W MVP wspierane sa dwa sposoby pracy:
+The MVP supports two working modes:
 
-1. domyslny `docker compose` z usluga `p1-connector`
-2. lokalny Ruby + `redis` uruchomiony z `docker-compose.dev.yml`
+1. default `docker compose` with the `p1-connector` service
+2. local Ruby + `redis` started from `docker-compose.dev.yml`
 
-## Dostepne komendy
+## Available Commands
 
-Glowne entrypointy repo:
+Main repository entrypoints:
 
-- `bin/p1-tool` - podstawowe CLI runtime
-- `bin/p1-live-smoke` - pomocnicze narzedzie wdrozeniowe MVP, poza stalym kontraktem runtime
+- `bin/p1-tool` - the main runtime CLI
+- `bin/p1-live-smoke` - a helper MVP deployment tool, outside the stable runtime contract
 
-### Sprawdzenie konfiguracji
+### Configuration Check
 
 ```bash
 bin/p1-tool verify --config config/config.yml
 ```
 
-Komenda:
+The command:
 
-- laduje konfiguracje YAML
-- waliduje wymagane pola
-- sprawdza wymagane envy z haslami do certyfikatow
-- probuje otworzyc oba pliki PKCS#12
-- potwierdza gotowosc runtime dla komend korzystajacych z integracji P1
-- zwraca kod `0`, jesli konfiguracja jest poprawna
+- loads YAML configuration
+- validates required fields
+- checks required certificate password environment variables
+- tries to open both PKCS#12 files
+- confirms runtime readiness for commands that use P1 integration
+- returns code `0` if configuration is valid
 
-### Przetworzenie jednego pliku
+### Processing One File
 
 ```bash
 bin/p1-tool run-once \
   --config config/config.yml \
-  --input /sciezka/do/input.json \
-  --output /sciezka/do/output.json
+  --input /path/to/input.json \
+  --output /path/to/output.json
 ```
 
-Komenda:
+The command:
 
-- wczytuje plik wejsciowy JSON
-- waliduje kontrakt wejscia
-- wykonuje jedna z obslugiwanych operacji biznesowych
-- zapisuje wynik do wskazanego pliku
-- dopisuje wpisy audytowe do pliku audit log
+- reads the input JSON file
+- validates the input contract
+- executes one of the supported business operations
+- writes the result to the indicated file
+- appends audit entries to the audit log file
 
-Kod wyjscia:
+Exit code:
 
-- `0` dla `success`
-- `1` dla `invalid` albo `failure`
+- `0` for `success`
+- `1` for `invalid` or `failure`
 
-### Tryb ciagly
+### Continuous Mode
 
-Przed startem trybu ciaglego potrzebny jest dzialajacy `Redis`.
+A running `Redis` is required before starting continuous mode.
 
 ```bash
 bin/p1-tool watch \
@@ -285,17 +285,17 @@ bin/p1-tool watch \
   --sidekiq-cron-config config/sidekiq-cron.yml
 ```
 
-Tryb `watch`:
+`watch` mode:
 
-- bootstrappuje konfiguracje raz na proces
-- laczy `Sidekiq` z `redis.url` z konfiguracji aplikacji
-- skanuje `inbox` zgodnie z harmonogramem `sidekiq-cron`
-- sprawdza harmonogram `sidekiq-cron` z interwalem `cron_poll_interval` z `config/sidekiq.yml`
-- przetwarza pliki z `processing`
-- przenosi pliki do `done` albo `invalid`
-- wykonuje jedno retry dla bledow technicznych i przejsciowych
+- bootstraps configuration once per process
+- connects `Sidekiq` to the `redis.url` from application configuration
+- scans `inbox` according to the `sidekiq-cron` schedule
+- checks the `sidekiq-cron` schedule using the `cron_poll_interval` from `config/sidekiq.yml`
+- processes files from `processing`
+- moves files to `done` or `invalid`
+- performs one retry for technical and transient errors
 
-Najprostsza sekwencja startowa jest taka:
+The simplest startup sequence is:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
@@ -311,35 +311,35 @@ bin/p1-tool watch \
 bin/p1-tool recover --config config/config.yml
 ```
 
-Komenda:
+The command:
 
-- laduje konfiguracje aplikacji bez walidacji runtime
-- przygotowuje workspace
-- przenosi zalegle pliki z `processing` z powrotem do `inbox`
-- nie wymaga walidacji certyfikatow ani dostepu do P1
+- loads application configuration without runtime validation
+- prepares the workspace
+- moves leftover files from `processing` back to `inbox`
+- does not require certificate validation or P1 access
 
-### Pozostale komendy CLI
+### Other CLI Commands
 
 ```bash
 bin/p1-tool help
 bin/p1-tool version
 ```
 
-### Narzedzie wdrozeniowe MVP
+### MVP Deployment Tool
 
-`bin/p1-live-smoke` jest pomocniczym narzedziem do wdrazania i recznej weryfikacji MVP.
-Nie jest traktowane jako stabilny kontrakt operacyjny runtime.
+`bin/p1-live-smoke` is a helper tool for deployment and manual MVP verification.
+It is not treated as a stable runtime operational contract.
 
-## Kontrakt wejscia
+## Input Contract
 
-Minimalny plik wejsciowy musi zawierac:
+The minimal input file must contain:
 
 - `task_id`
 - `operation_kind`
 - `payload`
-- opcjonalnie `options`
+- optionally `options`
 
-Obslugiwane wartosci `operation_kind`:
+Supported `operation_kind` values:
 
 - `register_encounter`
 - `register_procedure`
@@ -348,7 +348,7 @@ Obslugiwane wartosci `operation_kind`:
 - `get_resource`
 - `destroy_resource`
 
-Przyklad:
+Example:
 
 ```json
 {
@@ -374,9 +374,9 @@ Przyklad:
 }
 ```
 
-## Wynik wykonania
+## Execution Result
 
-Plik wynikowy zawiera m.in.:
+The result file contains, among other fields:
 
 - `transport_id`
 - `task_id`
@@ -386,39 +386,39 @@ Plik wynikowy zawiera m.in.:
 - `attempt`
 - `started_at`
 - `finished_at`
-- opcjonalne `error`
-- opcjonalne `details`
+- optional `error`
+- optional `details`
 
-Mozliwe wartosci `result_kind`:
+Possible `result_kind` values:
 
 - `success`
 - `invalid`
 - `failure`
 
-## Audyt
+## Audit
 
-Audyt jest zapisywany do jednego pliku append-only w formacie JSON Lines.
+Audit is written to one append-only file in JSON Lines format.
 
-Zapisywane sa zdarzenia:
+The following events are written:
 
 - `execution_started`
 - `execution_finished`
 - `execution_error`
 
-## Ograniczenia obecnej wersji
+## Current Version Limitations
 
-Obecna wersja nie udostepnia jeszcze:
+The current version does not yet provide:
 
-- podstawowego HTTP API dla runtime
-- UI uzytkowego
+- a basic HTTP API for the runtime
+- a user-facing UI
 
-## Lokalne uruchomienie z Ruby krok po kroku
+## Local Ruby Run, Step by Step
 
-Ta procedura jest podstawowa sciezka sprawdzenia aplikacji po lokalnym przygotowaniu konfiguracji.
-Scenariusze wykonuj na srodowisku `integration`, z poprawnymi certyfikatami WSS/TLS i haslami w envach wskazanych w `config/config.yml`.
-Scenariusze `run-once` i `watch` z fixture `register_encounter_input.json` wykonuja realne wywolania P1 i moga tworzyc zasoby w srodowisku integracyjnym.
+This procedure is the primary path for checking the application after preparing local configuration.
+Run scenarios against the `integration` environment, with valid WSS/TLS certificates and passwords in the environment variables indicated in `config/config.yml`.
+The `run-once` and `watch` scenarios using the `register_encounter_input.json` fixture perform real P1 calls and may create resources in the integration environment.
 
-1. przygotuj projekt:
+1. prepare the project:
 
 ```bash
 bundle install
@@ -426,32 +426,32 @@ cp config/config.example.yml config/config.yml
 cp .env.example .env
 ```
 
-2. ustaw lokalne sciezki i sekrety w `.env`:
+2. set local paths and secrets in `.env`:
 
 ```dotenv
 P1_DATA_ROOT=./tmp/local/data
 P1_LOGS_ROOT=./tmp/local/logs
-P1_CERTIFICATES_BASE_PATH=/sciezka/do/certyfikatow
+P1_CERTIFICATES_BASE_PATH=/path/to/certificates
 REDIS_URL=redis://127.0.0.1:6379/0
 WSS_CERT_PASSWORD=...
 TLS_CERT_PASSWORD=...
 ```
 
-Katalogi `inbox`, `processing`, `done`, `invalid`, `results` i `audit_log` powstana automatycznie.
-Katalogi robocze musza byc na tym samym filesystemie.
+The `inbox`, `processing`, `done`, `invalid`, `results`, and `audit_log` directories will be created automatically.
+Working directories must be on the same filesystem.
 
-3. zweryfikuj konfiguracje:
+3. verify configuration:
 
 ```bash
 bin/p1-tool verify --config config/config.yml
 ```
 
-Oczekiwany efekt:
+Expected effect:
 
-- kod wyjscia `0`
-- komunikat `Configuration OK`
+- exit code `0`
+- `Configuration OK` message
 
-4. sprawdz tryb jednorazowy `run-once`:
+4. check one-shot `run-once` mode:
 
 ```bash
 bin/p1-tool run-once \
@@ -460,14 +460,14 @@ bin/p1-tool run-once \
   --output tmp/local/manual-output.json
 ```
 
-Oczekiwany efekt:
+Expected effect:
 
-- kod wyjscia `0`
-- komunikat `Execution finished with success`
-- plik `tmp/local/manual-output.json`
-- wpisy audytu w `tmp/local/logs/audit.jsonl`
+- exit code `0`
+- `Execution finished with success` message
+- `tmp/local/manual-output.json` file
+- audit entries in `tmp/local/logs/audit.jsonl`
 
-5. sprawdz scenariusz niepoprawnego wejscia:
+5. check the invalid input scenario:
 
 ```bash
 bin/p1-tool run-once \
@@ -476,20 +476,20 @@ bin/p1-tool run-once \
   --output tmp/local/manual-invalid-output.json
 ```
 
-Oczekiwany efekt:
+Expected effect:
 
-- kod wyjscia `1`
-- komunikat `Execution finished with invalid`
-- plik `tmp/local/manual-invalid-output.json`
-- w wyniku `result_kind` ma wartosc `invalid`
+- exit code `1`
+- `Execution finished with invalid` message
+- `tmp/local/manual-invalid-output.json` file
+- the result has `result_kind` set to `invalid`
 
-6. uruchom Redisa do trybu `watch` i testu integracyjnego:
+6. start Redis for `watch` mode and the integration test:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-7. uruchom tryb ciagly `watch`:
+7. start continuous `watch` mode:
 
 ```bash
 bin/p1-tool watch \
@@ -498,18 +498,18 @@ bin/p1-tool watch \
   --sidekiq-cron-config config/sidekiq-cron.yml
 ```
 
-Oczekiwany efekt po starcie:
+Expected effect after startup:
 
-- komunikat `Continuous mode started`
-- polaczenie z Redisem z `redis.url`
+- `Continuous mode started` message
+- connection to Redis from `redis.url`
 
-8. w drugim terminalu wrzuc plik do `inbox`:
+8. in a second terminal, put a file into `inbox`:
 
 ```bash
 cp spec/fixtures/runtime/register_encounter_input.json tmp/local/data/inbox/task-1.json
 ```
 
-Po przetworzeniu sprawdz:
+After processing, check:
 
 ```bash
 find tmp/local -maxdepth 4 -type f | sort
@@ -517,27 +517,27 @@ cat tmp/local/data/results/task-1.json.result.json
 cat tmp/local/logs/audit.jsonl
 ```
 
-Oczekiwany efekt:
+Expected effect:
 
-- plik znika z `inbox`
-- plik pojawia sie w `done/task-1.json`
-- wynik pojawia sie w `results/task-1.json.result.json`
-- wynik ma `result_kind: success`
-- audit ma zdarzenia `execution_started` i `execution_finished`
+- the file disappears from `inbox`
+- the file appears in `done/task-1.json`
+- the result appears in `results/task-1.json.result.json`
+- the result has `result_kind: success`
+- the audit has `execution_started` and `execution_finished` events
 
-9. sprawdz scenariusz `invalid` w trybie ciagly:
+9. check the `invalid` scenario in continuous mode:
 
 ```bash
 cp spec/fixtures/runtime/invalid_input_missing_operation_kind.json tmp/local/data/inbox/task-invalid.json
 ```
 
-Oczekiwany efekt:
+Expected effect:
 
-- plik pojawia sie w `invalid/task-invalid.json`
-- wynik pojawia sie w `results/task-invalid.json.result.json`
-- wynik ma `result_kind: invalid`
+- the file appears in `invalid/task-invalid.json`
+- the result appears in `results/task-invalid.json.result.json`
+- the result has `result_kind: invalid`
 
-10. zatrzymaj proces `watch` przez `Ctrl+C`, a potem opcjonalnie sprawdz `recover`:
+10. stop the `watch` process with `Ctrl+C`, then optionally check `recover`:
 
 ```bash
 mkdir -p tmp/local/data/processing
@@ -545,89 +545,89 @@ cp spec/fixtures/runtime/register_encounter_input.json tmp/local/data/processing
 bin/p1-tool recover --config config/config.yml
 ```
 
-Oczekiwany efekt:
+Expected effect:
 
-- komunikat `Recovery finished`
-- komunikat `Recovered files: 1`
-- plik znika z `processing`
-- plik pojawia sie w `inbox/task-recover.json`
+- `Recovery finished` message
+- `Recovered files: 1` message
+- the file disappears from `processing`
+- the file appears in `inbox/task-recover.json`
 
-11. zatrzymaj Redisa i wyczysc lokalne artefakty, jesli nie sa juz potrzebne:
+11. stop Redis and clean local artifacts if they are no longer needed:
 
 ```bash
 docker compose -f docker-compose.dev.yml down
 rm -rf tmp/local
 ```
 
-`bin/p1-live-smoke` moze byc uzyte pomocniczo przy wdrazaniu MVP, ale nie jest podstawowa procedura testera.
+`bin/p1-live-smoke` can be used as a helper during MVP deployment, but it is not the primary tester procedure.
 
-## Testy
+## Tests
 
-Domyslna lokalna bramka jakosci:
+Default local quality gate:
 
 ```bash
 bundle exec rake quality
 ```
 
-Uruchamia szybkie testy Ruby oraz RuboCopa. RuboCop jest odpalany z `--cache false`, zeby nie zalezec od zapisu do katalogu domowego uzytkownika.
+Runs fast Ruby tests and RuboCop. RuboCop is run with `--cache false` so it does not depend on writing to the user's home directory.
 
-Szybki zestaw jednostkowy:
+Fast unit suite:
 
 ```bash
 bundle exec rake test:unit
 ```
 
-Testy generuja raport pokrycia w `coverage/index.html`.
-Na tym etapie coverage jest metryka informacyjna i nie blokuje uruchomienia testow minimalnym progiem.
+Tests generate a coverage report in `coverage/index.html`.
+At this stage, coverage is an informational metric and does not block test execution with a minimum threshold.
 
-Test integracyjny trybu ciaglego uzywa prawdziwego `redis`, ale sam test nie podnosi uslugi.
-Jesli `redis` nie dziala, test integracyjny zostanie oznaczony jako `skip`.
+The continuous mode integration test uses a real `redis`, but the test itself does not start the service.
+If `redis` is not running, the integration test is marked as `skip`.
 
-Uruchomienie Redisa:
+Start Redis:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-Test integracyjny:
+Integration test:
 
 ```bash
 bundle exec rake test:integration
 ```
 
-Pelny lokalny zestaw:
+Full local suite:
 
 ```bash
 bundle exec rake test
 ```
 
-Szersza lokalna bramka, obejmujaca takze testy Java w `services/signature-tool`:
+Broader local gate, also covering Java tests in `services/signature-tool`:
 
 ```bash
 bundle exec rake quality:full
 ```
 
-Zadanie `test:signature` uzywa projektowego cache Gradle w `tmp/gradle`, zeby nie wymagac zapisu do `~/.gradle`.
+The `test:signature` task uses the project Gradle cache in `tmp/gradle` so it does not require writing to `~/.gradle`.
 
 ## CI
 
-Repozytorium ma pipeline GitHub Actions w `.github/workflows/ci.yml`.
+The repository has a GitHub Actions pipeline in `.github/workflows/ci.yml`.
 
-Pipeline uruchamia:
+The pipeline runs:
 
 - `Ruby quality` - `bundle exec rake quality`
-- `Ruby Redis integration` - `bundle exec rake test:integration` z usluga `redis`
-- `Signature tool` - `./gradlew test` w `services/signature-tool`
+- `Ruby Redis integration` - `bundle exec rake test:integration` with a `redis` service
+- `Signature tool` - `./gradlew test` in `services/signature-tool`
 
-Pelne lokalne uruchomienie z wykonanym testem integracyjnym wymaga:
+A full local run with the integration test requires:
 
-- dzialajacego Dockera
-- dostepnego `docker compose`
-- uruchomionego `redis` z `docker-compose.dev.yml`
+- a running Docker
+- available `docker compose`
+- `redis` started from `docker-compose.dev.yml`
 
-## Pliki referencyjne
+## Reference Files
 
-- `config/config.example.yml` - przykladowa konfiguracja
-- `.env.example` - przykladowe zmienne srodowiskowe
-- `.env.compose.example` - przykladowe zmienne dla domyslnego uruchomienia przez Docker Compose
-- `plan.md` - glowny opis kierunku projektu
+- `config/config.example.yml` - example configuration
+- `.env.example` - example environment variables
+- `.env.compose.example` - example variables for the default Docker Compose setup
+- `plan.md` - main description of the project direction

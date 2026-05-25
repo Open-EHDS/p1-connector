@@ -1,36 +1,36 @@
 # Security Policy
 
-## Zglaszanie podatnosci
+## Reporting Vulnerabilities
 
-Nie zglaszaj podatnosci bezpieczenstwa przez publiczne issue.
+Do not report security vulnerabilities through public issues.
 
-W przypadku podatnosci, wycieku sekretu, problemu z certyfikatami albo ryzyka ujawnienia danych wrazliwych skontaktuj sie prywatnie z maintainerami organizacji Open-EHDS lub z teamem `@Open-EHDS/p1-connector-maintainers`.
+For a vulnerability, secret leak, certificate issue, or risk of exposing sensitive data, contact the Open-EHDS organization maintainers or the `@Open-EHDS/p1-connector-maintainers` team privately.
 
-## Zakres
+## Scope
 
-Polityka obejmuje:
+This policy covers:
 
-- kod aplikacji `p1-connector`,
-- konfiguracje przykladowe,
-- pipeline CI,
-- narzedzia pomocnicze znajdujace sie w tym repozytorium.
+- the `p1-connector` application code,
+- example configuration,
+- the CI pipeline,
+- helper tools included in this repository.
 
-## Dane wrazliwe
+## Sensitive Data
 
-Repozytorium nie powinno zawierac:
+The repository must not contain:
 
-- sekretow,
-- certyfikatow,
-- prywatnych kluczy,
-- danych pacjentow,
-- danych produkcyjnych,
-- plikow roboczych wygenerowanych podczas realnej integracji z P1.
+- secrets,
+- certificates,
+- private keys,
+- patient data,
+- production data,
+- working files generated during a real P1 integration.
 
-## Oczekiwane dzialania po zgloszeniu
+## Expected Actions After a Report
 
-Maintainerzy powinni:
+Maintainers should:
 
-1. Potwierdzic odbior zgloszenia.
-2. Oceniac ryzyko bez publicznego ujawniania szczegolow.
-3. Przygotowac poprawke w prywatnym lub ograniczonym kanale, jesli wymaga tego charakter podatnosci.
-4. Po naprawie opisac publicznie tylko te informacje, ktore nie zwiekszaja ryzyka naduzycia.
+1. Confirm receipt of the report.
+2. Assess the risk without publicly disclosing details.
+3. Prepare a fix in a private or restricted channel if the nature of the vulnerability requires it.
+4. After the fix, publicly describe only the information that does not increase the risk of abuse.
