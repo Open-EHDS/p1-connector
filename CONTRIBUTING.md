@@ -1,63 +1,63 @@
 # Contributing
 
-Dziekujemy za chec kontrybucji do `p1-connector`.
+Thank you for your interest in contributing to `p1-connector`.
 
-## Model pracy
+## Working Model
 
-- Glowna i chroniona galezia repozytorium to `main`.
-- Nie uzywamy stalej galezi `develop`.
-- Zmiany trafiaja do `main` przez pull request.
-- Domyslnym sposobem merge jest squash merge.
-- Po merge galezie robocze sa usuwane automatycznie.
+- The main and protected repository branch is `main`.
+- We do not use a permanent `develop` branch.
+- Changes are merged into `main` through pull requests.
+- The default merge strategy is squash merge.
+- Working branches are deleted automatically after merge.
 
-## Pull requesty
+## Pull Requests
 
-1. Utworz branch z krotka, opisowa nazwa.
-2. Przygotuj zmiane w mozliwie spojnym zakresie.
-3. Uruchom adekwatne testy.
-4. Otworz PR do `main` i wypelnij szablon.
-5. Poczekaj na wymagana recenzje maintainerow oraz review CODEOWNERS.
+1. Create a branch with a short, descriptive name.
+2. Prepare a change with a reasonably coherent scope.
+3. Run the relevant tests.
+4. Open a PR to `main` and fill in the template.
+5. Wait for the required maintainer review and CODEOWNERS review.
 
-Minimalny standard PR:
+Minimum PR standard:
 
 - 1 approval.
-- Review CODEOWNERS.
-- Rozwiazane komentarze przed merge.
-- Zielony CI, gdy repozytorium ma aktywny stabilny workflow dla danego zakresu.
+- CODEOWNERS review.
+- Comments resolved before merge.
+- Green CI when the repository has an active stable workflow for the given scope.
 
-## Uprawnienia
+## Permissions
 
-Dostep do repozytorium jest zarzadzany przez teamy organizacji GitHub, nie przez bezposrednich collaboratorow. Dla tego repo podstawowym teamem utrzymujacym jest `@Open-EHDS/p1-connector-maintainers`.
+Repository access is managed through GitHub organization teams, not through direct collaborators. For this repository, the primary maintaining team is `@Open-EHDS/p1-connector-maintainers`.
 
-## Testy
+## Tests
 
-Podstawowy lokalny zestaw jakosci:
+Basic local quality suite:
 
 ```bash
 bundle exec rake quality
 ```
 
-Testy integracyjne z Redis:
+Integration tests with Redis:
 
 ```bash
 INTEGRATION_REDIS_URL=redis://127.0.0.1:6379/0 REQUIRE_REDIS_INTEGRATION=1 bundle exec rake test:integration
 ```
 
-Testy narzedzia podpisu:
+Signature tool tests:
 
 ```bash
 cd services/signature-tool
 ./gradlew test
 ```
 
-## Sekrety i dane wrazliwe
+## Secrets and Sensitive Data
 
-Nie commituj:
+Do not commit:
 
-- sekretow,
-- certyfikatow,
-- danych pacjentow,
-- danych srodowiskowych produkcji,
-- wygenerowanych plikow roboczych z integracji P1.
+- secrets,
+- certificates,
+- patient data,
+- production environment data,
+- generated working files from P1 integration.
 
-Jesli przypadkowo trafia do repo sekret albo dane wrazliwe, nie naprawiaj tego samym usunieciem pliku w kolejnym commicie. Zglos incydent maintainerom, zeby mozna bylo wykonac rotacje i czyszczenie historii, jesli bedzie potrzebne.
+If a secret or sensitive data is accidentally committed to the repository, do not fix it only by removing the file in a later commit. Report the incident to the maintainers so rotation and history cleanup can be performed if needed.
